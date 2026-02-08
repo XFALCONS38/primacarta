@@ -118,12 +118,13 @@ async function searchAllCategories(
   categories: string[],
   location: string,
   preferredRetailers: string[],
-  firecrawlKey: string
+  firecrawlKey: string,
+  buyerContext?: string
 ): Promise<string> {
   console.log(`Searching ${categories.length} categories...`);
 
   const searchPromises = categories.map(async (category) => {
-    const results = await searchProducts(category, location, preferredRetailers, firecrawlKey);
+    const results = await searchProducts(category, location, preferredRetailers, firecrawlKey, buyerContext);
     return { category, results };
   });
 
