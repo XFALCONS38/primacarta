@@ -45,7 +45,8 @@ Instructions:
 
 Instructions:
 - Call the request_clarification tool to generate a form for the user to fill in.
-- Include fields for: budget, delivery_by date, preferences (style, team/theme, colors, must_haves, nice_to_haves), and category-specific options.
+- ALWAYS include fields for: budget, delivery_by date, location (ZIP code or City/State - required), preferred_retailers (multiselect with options: Any, Amazon, Walmart, Target, Shein, Temu, AliExpress, eBay, Best Buy, Etsy, Nordstrom, Nike, Adidas).
+- Also include relevant preference fields: style, team/theme, colors, must_haves, nice_to_haves, and category-specific options.
 - Pre-fill any known values from user input or previous sessions.
 - Do not write conversational text outside the tool call.`,
   },
