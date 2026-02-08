@@ -70,7 +70,7 @@ export function ClarificationForm({ request, onSubmit, disabled }: Clarification
             value={values[field.id] || ""}
             onChange={(v) => update(field.id, v)}
             onToggleMulti={(opt) => toggleMulti(field.id, opt)}
-            selectedMulti={values[field.id]?.split(",").filter(Boolean) || []}
+            selectedMulti={String(values[field.id] || "").split(",").filter(Boolean)}
             disabled={disabled}
           />
         ))}
