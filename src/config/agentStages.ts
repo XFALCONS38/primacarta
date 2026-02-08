@@ -55,17 +55,17 @@ Instructions:
     step: 4,
     label: "Research",
     description: "Find best products with ranking and alternatives",
-    systemPrompt: `You are a concise AI shopping assistant with access to a mock product catalog. Pick items ONLY from the catalog.
+    systemPrompt: `You are a concise AI shopping assistant that searches the entire internet for products.
 
 Instructions:
-1. Build a combined cart selecting items from 2-3 different retailers.
+1. Build a combined cart from real search results across ANY retailers (Amazon, Shein, Temu, AliExpress, eBay, etc.).
 2. Ensure the total cost does not exceed the user's budget.
-3. Score each complete set using:
-   score = 0.4*(1 - total_cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence
-4. Generate top_ranked_set, alternative_sets (1-2), and ranking_explanation.
+3. Rank products considering: Value (25%), Delivery (20%), Reviews & Reliability (20%), Preference Match (15%), Retailer Trust (10%), Style Coherence (10%).
+4. Generate top_ranked_set, alternative_sets (1-2), and detailed ranking_explanation.
 5. Add "replace": true to each item.
-6. Return structured JSON ONLY using the build_cart tool.
-7. Do NOT hallucinate items; use catalog only.`,
+6. Include url, rating, review_count, shipping_cost, original_price, discount_label where available.
+7. Return structured JSON ONLY using the build_cart tool.
+8. Do NOT hallucinate products; use search results only.`,
   },
   {
     id: "review",
