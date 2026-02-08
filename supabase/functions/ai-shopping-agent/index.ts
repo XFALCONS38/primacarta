@@ -78,11 +78,25 @@ function extractRetailer(url: string): string {
 }
 
 /**
- * Try to extract a price from text content.
+ * Try to extract a price from text content. Handles $XX.XX, USD XX, and comma-separated prices.
+ * Returns null if no valid price found (never returns 0).
  */
 function extractPrice(text: string): number | null {
-  const match = text.match(/\$(\d{1,5}(?:\.\d{1,2})?)/);
-  return match ? parseFloat(match[1]) : null;
+  // Try multiple price patterns
+  const patterns = [
+    /\$(\d{1,5}(?:,\d{3})*(?:\.\d{1,2})?)/,          // $1,234.56 or $29.99
+    /USD\s*(\d{1,5}(?:,\d{3})*(?:\.\d{1,2})?)/i,      // USD 29.99
+    /(\d{1,5}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:USD|\$)/,  // 29.99 USD
+    /price[:\s]*\$?(\d{1,5}(?:,\d{3})*(?:\.\d{1,2})?)/i, // price: 29.99
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const val = parseFloat(match[1].replace(/,/g, ""));
+      if (val > 0) return val;
+    }
+  }
+  return null;
 }
 
 /**
