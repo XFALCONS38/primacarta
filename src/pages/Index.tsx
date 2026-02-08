@@ -185,9 +185,6 @@ const Index = () => {
             </p>
           </div>
           <StageIndicator currentStage={stage} />
-          <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
-            <LogOut className="h-4 w-4" />
-          </Button>
         </header>
 
         {/* Messages */}
