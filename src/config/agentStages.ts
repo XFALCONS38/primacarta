@@ -199,6 +199,7 @@ export const TOOL_DEFINITIONS = {
                 shipping_cost: { type: "number", description: "Shipping cost (0 = free)" },
                 original_price: { type: "number", description: "Price before discount" },
                 discount_label: { type: "string", description: "e.g. '20% off', 'Buy 2 Get 1'" },
+                reason: { type: "string", description: "1 sentence explaining why this item was chosen" },
               },
               required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
               additionalProperties: false,
