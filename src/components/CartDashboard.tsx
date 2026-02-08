@@ -3,10 +3,10 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, 
 import { DollarSign, Truck, ShoppingCart as CartIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RetailerBadge } from "@/components/RetailerBadge";
-import type { CartItem } from "@/types/chat";
+import type { CartRecommendationItem } from "@/types/chat";
 
 interface CartDashboardProps {
-  items: CartItem[];
+  items: CartRecommendationItem[];
   budget: number;
 }
 
@@ -17,13 +17,12 @@ const RETAILER_COLORS: Record<string, string> = {
 };
 
 export function CartDashboard({ items, budget }: CartDashboardProps) {
-  const totalCost = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const totalCost = items.reduce((sum, item) => sum + item.price, 0);
   const remaining = budget - totalCost;
 
-  // Spend by retailer
   const retailerSpend = items.reduce((acc, item) => {
-    const r = item.product.retailer;
-    acc[r] = (acc[r] || 0) + item.product.price * item.quantity;
+    const r = item.retailer;
+    acc[r] = (acc[r] || 0) + item.price;
     return acc;
   }, {} as Record<string, number>);
 
@@ -33,7 +32,7 @@ export function CartDashboard({ items, budget }: CartDashboardProps) {
     { name: "Remaining", value: +Math.max(0, remaining).toFixed(2), fill: "hsl(150, 60%, 40%)" },
   ];
 
-  const maxDelivery = Math.max(...items.map((i) => i.product.delivery_days));
+  const maxDelivery = Math.max(...items.map((i) => i.delivery_days));
 
   return (
     <motion.div
@@ -41,7 +40,6 @@ export function CartDashboard({ items, budget }: CartDashboardProps) {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="border-border">
           <CardContent className="flex items-center gap-3 p-4">
@@ -80,7 +78,6 @@ export function CartDashboard({ items, budget }: CartDashboardProps) {
         </Card>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="border-border">
           <CardHeader className="pb-2">
@@ -136,7 +133,6 @@ export function CartDashboard({ items, budget }: CartDashboardProps) {
         </Card>
       </div>
 
-      {/* Cart items table */}
       <Card className="border-border">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Cart Items</CardTitle>
@@ -153,24 +149,24 @@ export function CartDashboard({ items, budget }: CartDashboardProps) {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
-                  <tr key={item.product.id} className="border-b border-border last:border-0">
+                {items.map((item, i) => (
+                  <tr key={i} className="border-b border-border last:border-0">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{item.product.image_placeholder}</span>
+                        <span className="text-lg">{item.emoji}</span>
                         <div>
-                          <p className="font-medium">{item.product.name}</p>
-                          {item.selectedVariant && (
-                            <p className="text-xs text-muted-foreground">{item.selectedVariant}</p>
+                          <p className="font-medium">{item.name}</p>
+                          {item.variant && (
+                            <p className="text-xs text-muted-foreground">{item.variant}</p>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-2.5">
-                      <RetailerBadge retailer={item.product.retailer} />
+                      <RetailerBadge retailer={item.retailer} />
                     </td>
-                    <td className="px-4 py-2.5 text-right font-medium">${item.product.price.toFixed(2)}</td>
-                    <td className="px-4 py-2.5 text-right text-muted-foreground">{item.product.delivery_days}d</td>
+                    <td className="px-4 py-2.5 text-right font-medium">${item.price.toFixed(2)}</td>
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">{item.delivery_days}d</td>
                   </tr>
                 ))}
               </tbody>

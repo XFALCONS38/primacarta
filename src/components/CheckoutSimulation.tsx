@@ -4,16 +4,16 @@ import { Check, CreditCard, MapPin, User, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RetailerBadge } from "@/components/RetailerBadge";
-import type { CartItem } from "@/types/chat";
+import type { CartRecommendationItem } from "@/types/chat";
 
 interface CheckoutSimulationProps {
-  items: CartItem[];
+  items: CartRecommendationItem[];
   onComplete: () => void;
 }
 
 interface RetailerGroup {
   retailer: "Amazon" | "Walmart" | "Target";
-  items: CartItem[];
+  items: CartRecommendationItem[];
   subtotal: number;
 }
 
@@ -31,10 +31,10 @@ export function CheckoutSimulation({ items, onComplete }: CheckoutSimulationProp
 
   const groups: RetailerGroup[] = Object.values(
     items.reduce((acc, item) => {
-      const r = item.product.retailer;
+      const r = item.retailer;
       if (!acc[r]) acc[r] = { retailer: r, items: [], subtotal: 0 };
       acc[r].items.push(item);
-      acc[r].subtotal += item.product.price * item.quantity;
+      acc[r].subtotal += item.price;
       return acc;
     }, {} as Record<string, RetailerGroup>)
   );
