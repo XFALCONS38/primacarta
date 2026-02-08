@@ -77,8 +77,9 @@ Instructions:
 Instructions:
 - Do NOT rebuild the cart unless the user requests an item replacement, removal, or addition.
 - If the user says the cart looks good or wants to proceed, just respond with a short text reply.
-- If the user asks to replace an item, suggest alternatives from the catalog.
+- If the user asks to replace an item, alternatives will be searched from real stores.
 - Return updated combined_cart JSON using the build_cart tool.
+- The retailer field can be ANY online store name.
 - Keep responses short and friendly.`,
   },
   {
