@@ -4,12 +4,23 @@ import { CreditCard, MapPin, User, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { z } from "zod";
 import type { CheckoutInfo } from "@/types/chat";
 
 interface CheckoutFormProps {
   onSubmit: (info: CheckoutInfo) => void;
   disabled?: boolean;
 }
+
+const checkoutSchema = z.object({
+  fullName: z.string().trim().min(1, "Name is required").max(100, "Name too long"),
+  email: z.string().trim().email("Invalid email").max(255, "Email too long"),
+  address: z.string().trim().min(1, "Address is required").max(200, "Address too long"),
+  city: z.string().trim().min(1, "City is required").max(100, "City too long"),
+  state: z.string().trim().min(1, "State is required").max(2, "Use 2-letter code"),
+  zip: z.string().trim().min(5, "ZIP too short").max(10, "ZIP too long").regex(/^[0-9\-]+$/, "Invalid ZIP"),
+  cardLast4: z.string().length(4, "Must be 4 digits").regex(/^\d{4}$/, "Digits only"),
+});
 
 export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
   const [form, setForm] = useState<CheckoutInfo>({
@@ -21,9 +32,25 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
     zip: "",
     cardLast4: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const update = (key: keyof CheckoutInfo, val: string) =>
     setForm((prev) => ({ ...prev, [key]: val }));
+
+  const handleSubmit = () => {
+    const result = checkoutSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((e) => {
+        const field = e.path[0] as string;
+        if (!fieldErrors[field]) fieldErrors[field] = e.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+    onSubmit(result.data as CheckoutInfo);
+  };
 
   const isValid =
     form.fullName.trim() &&
@@ -41,9 +68,7 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
       className="w-full max-w-md space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm"
     >
       <div className="text-center space-y-1">
-        <h3 className="font-display text-lg font-semibold text-foreground">
-          Checkout Details
-        </h3>
+        <h3 className="font-display text-lg font-semibold text-foreground">Checkout Details</h3>
         <p className="text-xs text-muted-foreground">
           Enter once — Prima handles checkout at every retailer
         </p>
@@ -60,8 +85,11 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("fullName", e.target.value)}
             disabled={disabled}
             placeholder="John Doe"
-            className="h-8 rounded-lg text-sm"
+            className="h-10 rounded-lg text-base sm:text-sm"
           />
+          {errors.fullName && (
+            <p className="text-[10px] text-destructive">{errors.fullName}</p>
+          )}
         </div>
         <div className="space-y-1">
           <Label className="text-xs font-medium flex items-center gap-1">
@@ -73,8 +101,9 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("email", e.target.value)}
             disabled={disabled}
             placeholder="john@example.com"
-            className="h-8 rounded-lg text-sm"
+            className="h-10 rounded-lg text-base sm:text-sm"
           />
+          {errors.email && <p className="text-[10px] text-destructive">{errors.email}</p>}
         </div>
       </div>
 
@@ -88,8 +117,9 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
           onChange={(e) => update("address", e.target.value)}
           disabled={disabled}
           placeholder="123 Main St, Apt 4"
-          className="h-8 rounded-lg text-sm"
+          className="h-10 rounded-lg text-base sm:text-sm"
         />
+        {errors.address && <p className="text-[10px] text-destructive">{errors.address}</p>}
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -100,8 +130,9 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("city", e.target.value)}
             disabled={disabled}
             placeholder="Boston"
-            className="h-8 rounded-lg text-sm"
+            className="h-10 rounded-lg text-base sm:text-sm"
           />
+          {errors.city && <p className="text-[10px] text-destructive">{errors.city}</p>}
         </div>
         <div className="space-y-1">
           <Label className="text-xs">State</Label>
@@ -110,9 +141,10 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("state", e.target.value)}
             disabled={disabled}
             placeholder="MA"
-            className="h-8 rounded-lg text-sm"
+            className="h-10 rounded-lg text-base sm:text-sm"
             maxLength={2}
           />
+          {errors.state && <p className="text-[10px] text-destructive">{errors.state}</p>}
         </div>
         <div className="space-y-1">
           <Label className="text-xs">ZIP</Label>
@@ -121,9 +153,10 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("zip", e.target.value)}
             disabled={disabled}
             placeholder="02101"
-            className="h-8 rounded-lg text-sm"
+            className="h-10 rounded-lg text-base sm:text-sm"
             maxLength={10}
           />
+          {errors.zip && <p className="text-[10px] text-destructive">{errors.zip}</p>}
         </div>
       </div>
 
@@ -137,18 +170,21 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
           onChange={(e) => update("cardLast4", e.target.value.replace(/\D/g, "").slice(0, 4))}
           disabled={disabled}
           placeholder="4242"
-          className="h-8 rounded-lg text-sm"
+          className="h-10 rounded-lg text-base sm:text-sm"
           maxLength={4}
         />
+        {errors.cardLast4 && (
+          <p className="text-[10px] text-destructive">{errors.cardLast4}</p>
+        )}
         <p className="text-[10px] text-muted-foreground">
           No real payment will be processed — this is a sandbox demo
         </p>
       </div>
 
       <Button
-        onClick={() => onSubmit(form)}
+        onClick={handleSubmit}
         disabled={!isValid || disabled}
-        className="w-full rounded-xl font-medium"
+        className="w-full rounded-xl font-medium min-h-[44px]"
       >
         <CreditCard className="mr-2 h-4 w-4" />
         Place All Orders

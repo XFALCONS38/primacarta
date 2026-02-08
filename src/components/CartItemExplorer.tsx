@@ -40,14 +40,12 @@ interface ExplorerEntry {
   isCandidate?: boolean;
 }
 
-// Gather ALL items (main + alternatives + search candidates) and group by category
 function gatherAllItems(
   mainItems: CartRecommendationItem[],
   alternativeSets?: AlternativeSet[],
   searchCandidates?: Record<string, SearchCandidate[]>
 ): Record<string, ExplorerEntry[]> {
   const grouped: Record<string, ExplorerEntry[]> = {};
-  // Track URLs to deduplicate
   const seenUrls = new Set<string>();
   const seenNames = new Set<string>();
 
@@ -55,7 +53,6 @@ function gatherAllItems(
     const category = item.category || "Other";
     if (!grouped[category]) grouped[category] = [];
 
-    // Deduplicate by URL or name
     const key = item.url || item.name;
     if (seenUrls.has(key) || seenNames.has(item.name.toLowerCase())) return;
     if (item.url) seenUrls.add(item.url);
@@ -64,27 +61,22 @@ function gatherAllItems(
     grouped[category].push({ item, source, rank: 0, isCandidate });
   };
 
-  // Main cart items first
   mainItems.forEach((item) => addItem(item, "Selected"));
 
-  // Alternative set items
   alternativeSets?.forEach((alt) => {
     alt.items.forEach((item) => addItem(item, alt.set_name));
   });
 
-  // Raw search candidates (from Firecrawl)
   if (searchCandidates) {
     for (const [category, candidates] of Object.entries(searchCandidates)) {
       for (const candidate of candidates) {
-        // Convert SearchCandidate to CartRecommendationItem-like structure
-        // Skip candidates with no valid price
         if (!candidate.price || candidate.price <= 0) continue;
         const asItem: CartRecommendationItem = {
           name: candidate.name,
           category: category,
           retailer: candidate.retailer,
           price: candidate.price,
-          delivery_days: 5, // Default estimate for candidates
+          delivery_days: 5,
           emoji: "📦",
           url: candidate.url,
         };
@@ -93,7 +85,6 @@ function gatherAllItems(
     }
   }
 
-  // Rank within each category by composite score
   Object.values(grouped).forEach((entries) => {
     entries.sort((a, b) => computeScore(b.item) - computeScore(a.item));
     entries.forEach((entry, i) => {
@@ -137,7 +128,6 @@ function sortEntries(entries: ExplorerEntry[], sortBy: SortOption): ExplorerEntr
       sorted.sort((a, b) => (b.item.review_count || 0) - (a.item.review_count || 0));
       break;
   }
-  // Re-rank after sorting
   sorted.forEach((entry, i) => {
     entry.rank = i + 1;
   });
@@ -145,8 +135,14 @@ function sortEntries(entries: ExplorerEntry[], sortBy: SortOption): ExplorerEntr
 }
 
 const RETAILER_PALETTE = [
-  "bg-blue-500", "bg-orange-500", "bg-red-500", "bg-emerald-500",
-  "bg-purple-500", "bg-yellow-500", "bg-pink-500", "bg-cyan-500",
+  "bg-blue-500",
+  "bg-orange-500",
+  "bg-red-500",
+  "bg-emerald-500",
+  "bg-purple-500",
+  "bg-yellow-500",
+  "bg-pink-500",
+  "bg-cyan-500",
 ];
 
 function getRetailerDot(name: string): string {
@@ -178,9 +174,8 @@ function ItemDetailCard({
     <div className="rounded-lg border border-border bg-background overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors min-h-[48px]"
       >
-        {/* Rank badge */}
         <span
           className={cn(
             "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
@@ -221,7 +216,10 @@ function ItemDetailCard({
             </Badge>
           )}
           {isCandidate && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-primary/30 text-primary">
+            <Badge
+              variant="outline"
+              className="text-[10px] px-1.5 py-0 h-5 border-primary/30 text-primary"
+            >
               <Search className="h-2.5 w-2.5 mr-0.5" />
               Found
             </Badge>
@@ -245,10 +243,13 @@ function ItemDetailCard({
             className="overflow-hidden"
           >
             <div className="border-t border-border px-3 py-3 space-y-2.5 bg-muted/20">
-              {/* Details grid */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
                 {item.price > 0 && (
-                  <DetailRow icon={<DollarSign className="h-3.5 w-3.5" />} label="Price" value={`$${item.price.toFixed(2)}`} />
+                  <DetailRow
+                    icon={<DollarSign className="h-3.5 w-3.5" />}
+                    label="Price"
+                    value={`$${item.price.toFixed(2)}`}
+                  />
                 )}
                 {item.original_price && item.original_price > item.price && (
                   <DetailRow
@@ -272,22 +273,34 @@ function ItemDetailCard({
                   value={
                     item.shipping_cost != null
                       ? item.shipping_cost === 0
-                        ? <span className="text-[hsl(var(--success))] font-medium">Free</span>
+                        ? (
+                            <span className="text-[hsl(var(--success))] font-medium">Free</span>
+                          )
                         : `$${item.shipping_cost.toFixed(2)}`
                       : "—"
                   }
                 />
                 {item.variant && (
-                  <DetailRow icon={<Info className="h-3.5 w-3.5" />} label="Variant" value={item.variant} />
+                  <DetailRow
+                    icon={<Info className="h-3.5 w-3.5" />}
+                    label="Variant"
+                    value={item.variant}
+                  />
                 )}
                 <DetailRow
-                  icon={<span className={cn("inline-block h-3 w-3 rounded-full", getRetailerDot(item.retailer))} />}
+                  icon={
+                    <span
+                      className={cn(
+                        "inline-block h-3 w-3 rounded-full",
+                        getRetailerDot(item.retailer)
+                      )}
+                    />
+                  }
                   label="Retailer"
                   value={item.retailer}
                 />
               </div>
 
-              {/* Rating row */}
               {item.rating && (
                 <div className="flex items-center gap-2 text-xs">
                   <div className="flex items-center gap-0.5">
@@ -312,7 +325,6 @@ function ItemDetailCard({
                 </div>
               )}
 
-              {/* Discount badge */}
               {item.discount_label && (
                 <div className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive">
                   <Tag className="h-3 w-3" />
@@ -320,7 +332,6 @@ function ItemDetailCard({
                 </div>
               )}
 
-              {/* Reason / decision trace */}
               {item.reason && (
                 <div className="rounded-md bg-primary/5 border border-primary/10 px-2.5 py-2 text-xs text-muted-foreground leading-relaxed">
                   <span className="font-medium text-foreground">Why this pick: </span>
@@ -328,25 +339,23 @@ function ItemDetailCard({
                 </div>
               )}
 
-              {/* Score */}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <BarChart3 className="h-3.5 w-3.5" />
                 <span>
                   Composite score:{" "}
-                  <span className="font-semibold text-foreground">{computeScore(item).toFixed(1)}</span>
+                  <span className="font-semibold text-foreground">
+                    {computeScore(item).toFixed(1)}
+                  </span>
                 </span>
-                <span className="text-muted-foreground/60">
-                  · Source: {source}
-                </span>
+                <span className="text-muted-foreground/60">· Source: {source}</span>
               </div>
 
-              {/* Link */}
               {item.url && (
                 <a
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors min-h-[36px]"
                 >
                   <ExternalLink className="h-3 w-3" />
                   View Product Page
@@ -387,7 +396,11 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "reviews", label: "Reviews: Most" },
 ];
 
-export function CartItemExplorer({ mainItems, alternativeSets, searchCandidates }: CartItemExplorerProps) {
+export function CartItemExplorer({
+  mainItems,
+  alternativeSets,
+  searchCandidates,
+}: CartItemExplorerProps) {
   const grouped = useMemo(
     () => gatherAllItems(mainItems, alternativeSets, searchCandidates),
     [mainItems, alternativeSets, searchCandidates]
@@ -416,16 +429,17 @@ export function CartItemExplorer({ mainItems, alternativeSets, searchCandidates 
         </h4>
       </div>
       <p className="text-xs text-muted-foreground">
-        Every product discovered across retailers, ranked by composite score. Click to expand details.
+        Every product discovered across retailers, ranked by composite score. Click to expand
+        details.
       </p>
 
       <Tabs defaultValue={categories[0]} className="w-full">
-        <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
+        <TabsList className="w-full overflow-x-auto flex-nowrap scrollbar-hide h-auto gap-1 bg-muted/50 p-1 justify-start">
           {categories.map((cat) => (
             <TabsTrigger
               key={cat}
               value={cat}
-              className="text-xs px-2.5 py-1.5 data-[state=active]:bg-background"
+              className="text-xs px-2.5 py-2 data-[state=active]:bg-background whitespace-nowrap shrink-0 min-h-[36px]"
             >
               {cat}
               <Badge variant="secondary" className="ml-1.5 text-[10px] px-1 py-0 h-4">
@@ -439,14 +453,13 @@ export function CartItemExplorer({ mainItems, alternativeSets, searchCandidates 
           const sortedEntries = sortEntries(grouped[cat], getSort(cat));
           return (
             <TabsContent key={cat} value={cat} className="mt-3 space-y-2">
-              {/* Sort control */}
               <div className="flex items-center gap-2">
                 <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
                 <Select
                   value={getSort(cat)}
                   onValueChange={(val) => setSort(cat, val as SortOption)}
                 >
-                  <SelectTrigger className="h-7 w-auto min-w-[160px] text-xs bg-background border-border">
+                  <SelectTrigger className="h-9 w-auto min-w-[160px] text-xs bg-background border-border">
                     <SelectValue placeholder="Sort by..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">

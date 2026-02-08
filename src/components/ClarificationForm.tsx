@@ -73,7 +73,9 @@ export function ClarificationForm({ request, onSubmit, disabled }: Clarification
             value={values[field.id] || ""}
             onChange={(v) => update(field.id, v)}
             onToggleMulti={(opt) => toggleMulti(field.id, opt)}
-            selectedMulti={String(values[field.id] || "").split(",").filter(Boolean)}
+            selectedMulti={String(values[field.id] || "")
+              .split(",")
+              .filter(Boolean)}
             disabled={disabled}
           />
         ))}
@@ -82,7 +84,7 @@ export function ClarificationForm({ request, onSubmit, disabled }: Clarification
       <Button
         onClick={handleSubmit}
         disabled={!allRequiredFilled || disabled}
-        className="mt-4 w-full rounded-xl font-medium"
+        className="mt-4 w-full rounded-xl font-medium min-h-[44px]"
         size="sm"
       >
         Submit Details
@@ -130,7 +132,7 @@ function FieldRenderer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className="h-8 rounded-lg text-sm"
+          className="h-10 rounded-lg text-base sm:text-sm"
           placeholder={`Enter ${field.label.toLowerCase()}`}
         />
       )}
@@ -142,14 +144,14 @@ function FieldRenderer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className="h-8 rounded-lg text-sm"
+          className="h-10 rounded-lg text-base sm:text-sm"
           placeholder="0"
         />
       )}
 
       {field.type === "select" && field.options && (
         <Select value={value} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger className="h-8 rounded-lg text-sm">
+          <SelectTrigger className="h-10 rounded-lg text-base sm:text-sm">
             <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
           </SelectTrigger>
           <SelectContent>
@@ -168,7 +170,7 @@ function FieldRenderer({
             <label
               key={opt}
               className={cn(
-                "flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors",
+                "flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors min-h-[36px]",
                 selectedMulti.includes(opt)
                   ? "border-primary bg-primary/10 text-foreground"
                   : "border-border bg-background text-muted-foreground hover:border-primary/40"
@@ -178,7 +180,7 @@ function FieldRenderer({
                 checked={selectedMulti.includes(opt)}
                 onCheckedChange={() => onToggleMulti(opt)}
                 disabled={disabled}
-                className="h-3 w-3"
+                className="h-3.5 w-3.5"
               />
               {opt}
             </label>

@@ -46,7 +46,7 @@ export function ItemChecklist({ items, onSubmit, disabled }: ItemChecklistProps)
               onClick={() => toggle(item.id)}
               disabled={disabled}
               className={cn(
-                "relative flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-all",
+                "relative flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm transition-all min-h-[48px]",
                 isSelected
                   ? "border-primary bg-primary/10 text-foreground shadow-sm"
                   : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-primary/5",
@@ -55,9 +55,7 @@ export function ItemChecklist({ items, onSubmit, disabled }: ItemChecklistProps)
             >
               <span className="text-base">{item.emoji}</span>
               <span className="flex-1 font-medium">{item.label}</span>
-              {isSelected && (
-                <Check className="h-3.5 w-3.5 text-primary" />
-              )}
+              {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
             </button>
           );
         })}
@@ -66,7 +64,7 @@ export function ItemChecklist({ items, onSubmit, disabled }: ItemChecklistProps)
       <Button
         onClick={handleSubmit}
         disabled={selected.size === 0 || disabled}
-        className="w-full rounded-xl font-medium"
+        className="w-full rounded-xl font-medium min-h-[44px]"
         size="sm"
       >
         Find these items ({selected.size})

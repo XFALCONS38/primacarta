@@ -23,8 +23,8 @@ export function SessionHistory({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border p-4">
         <h2 className="font-display text-sm font-semibold">History</h2>
-        <Button size="sm" variant="ghost" onClick={onNew} className="h-7 gap-1 text-xs">
-          <Plus className="h-3 w-3" />
+        <Button size="sm" variant="ghost" onClick={onNew} className="h-9 gap-1 text-xs min-w-[44px]">
+          <Plus className="h-3.5 w-3.5" />
           New
         </Button>
       </div>
@@ -38,7 +38,7 @@ export function SessionHistory({
             <div
               key={session.id}
               className={cn(
-                "group flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm cursor-pointer transition-colors hover:bg-muted",
+                "group flex items-center gap-2 rounded-lg px-2.5 py-2.5 text-sm cursor-pointer transition-colors hover:bg-muted min-h-[44px]",
                 activeSessionId === session.id && "bg-muted"
               )}
               onClick={() => onSelect(session)}
@@ -55,9 +55,9 @@ export function SessionHistory({
                   e.stopPropagation();
                   onDelete(session.id);
                 }}
-                className="hidden shrink-0 rounded p-1 text-muted-foreground hover:text-destructive group-hover:block"
+                className="touch-visible shrink-0 rounded p-2.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
           ))
