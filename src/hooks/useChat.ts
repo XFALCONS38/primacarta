@@ -7,6 +7,8 @@ import type {
   CartRecommendationItem,
   CheckoutStep,
   AlternativeSet,
+  CheckoutInfo,
+  ShoppingSpec,
 } from "@/types/chat";
 import type { WorkflowStage } from "@/config/agentStages";
 
@@ -16,6 +18,7 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [stage, setStage] = useState<WorkflowStage>("identify");
+  const [pendingCheckout, setPendingCheckout] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const lastCartRef = useRef<CartRecommendation | null>(null);
 
@@ -25,6 +28,7 @@ export function useChat() {
     budget?: number;
     selectedItems?: ChecklistItem[];
     clarificationValues?: Record<string, string>;
+    checkoutInfo?: CheckoutInfo;
   }>({});
 
   /** Generic fetch + handle response */
@@ -170,6 +174,7 @@ export function useChat() {
               shipping_cost: item.shipping_cost != null ? item.shipping_cost : undefined,
               original_price: item.original_price || undefined,
               discount_label: item.discount_label || undefined,
+              reason: item.reason || undefined,
             })),
             totalCost: data.data.total_cost || 0,
             budget: data.data.budget || 0,
@@ -191,6 +196,7 @@ export function useChat() {
                     shipping_cost: item.shipping_cost != null ? item.shipping_cost : undefined,
                     original_price: item.original_price || undefined,
                     discount_label: item.discount_label || undefined,
+                    reason: item.reason || undefined,
                   })),
                   ranking_explanation: alt.ranking_explanation || "",
                 }))
@@ -228,9 +234,11 @@ export function useChat() {
             timestamp: new Date(),
             checkoutSteps,
             checkoutGrandTotal: grandTotal,
+            checkoutInfo: contextRef.current.checkoutInfo || undefined,
             stage: currentStage,
           };
           setMessages((prev) => [...prev, assistantMsg]);
+          setPendingCheckout(false);
           break;
         }
 
@@ -294,7 +302,7 @@ export function useChat() {
     [messages]
   );
 
-  /** Submit clarification form → advance to research stage */
+  /** Submit clarification form → build shopping spec → advance to research stage */
   const submitClarification = useCallback(
     async (values: Record<string, string>) => {
       contextRef.current.clarificationValues = values;
@@ -305,6 +313,22 @@ export function useChat() {
         .join(", ");
       const userMsg = `Here are my details: ${details}`;
 
+      // Build shopping spec from context
+      const selectedItems = contextRef.current.selectedItems || [];
+      const spec: ShoppingSpec = {
+        scenario: messages[0]?.content?.slice(0, 80) || "Shopping request",
+        budget: parseFloat(values.budget) || 0,
+        delivery_by: values.delivery_by || undefined,
+        location: values.location || undefined,
+        items: selectedItems.map((i) => i.label),
+        preferences: Object.fromEntries(
+          Object.entries(values).filter(
+            ([k]) => !["budget", "delivery_by", "location"].includes(k)
+          ).filter(([, v]) => typeof v === "string" ? v.trim() !== "" : !!v)
+        ),
+      };
+
+      // Add user message
       setMessages((prev) => [
         ...prev,
         {
@@ -312,6 +336,19 @@ export function useChat() {
           role: "user",
           content: userMsg,
           timestamp: new Date(),
+          stage: "clarify",
+        },
+      ]);
+
+      // Add shopping spec as assistant message
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Here's your structured shopping spec:",
+          timestamp: new Date(),
+          shoppingSpec: spec,
           stage: "clarify",
         },
       ]);
@@ -336,18 +373,14 @@ export function useChat() {
     [messages]
   );
 
-  /** Confirm cart and proceed to checkout */
-  const confirmCheckout = useCallback(async () => {
+  /** Confirm cart → show checkout form */
+  const confirmCheckout = useCallback(() => {
     const cart = lastCartRef.current;
     if (!cart) return;
 
-    // Build a summary of the cart for the checkout prompt
-    const cartSummary = cart.items
-      .map((i) => `${i.emoji} ${i.name} (${i.retailer}) — $${i.price.toFixed(2)}`)
-      .join("\n");
+    setPendingCheckout(true);
 
-    const userMsg = `Proceed to checkout with this cart:\n${cartSummary}\nTotal: $${cart.totalCost.toFixed(2)}`;
-
+    // Add a message that triggers the checkout form
     setMessages((prev) => [
       ...prev,
       {
@@ -357,9 +390,80 @@ export function useChat() {
         timestamp: new Date(),
         stage: "review",
       },
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "Enter your details below — you'll only need to do this once. Prima handles checkout at every retailer for you.",
+        timestamp: new Date(),
+        checkoutInfo: null as any, // Signal to render the form
+        stage: "checkout",
+      },
+    ]);
+  }, []);
+
+  /** Submit checkout form → proceed to checkout simulation */
+  const submitCheckoutForm = useCallback(
+    async (info: CheckoutInfo) => {
+      contextRef.current.checkoutInfo = info;
+      const cart = lastCartRef.current;
+      if (!cart) return;
+
+      // Build cart summary for checkout prompt
+      const cartSummary = cart.items
+        .map((i) => `${i.emoji} ${i.name} (${i.retailer}) — $${i.price.toFixed(2)}`)
+        .join("\n");
+
+      const userMsg = `Proceed to checkout with this cart:\n${cartSummary}\nTotal: $${cart.totalCost.toFixed(2)}\nShipping to: ${info.fullName}, ${info.address}, ${info.city}, ${info.state} ${info.zip}\nPayment: card ending ${info.cardLast4}`;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: `Placing orders for ${info.fullName}...`,
+          timestamp: new Date(),
+          stage: "checkout",
+        },
+      ]);
+
+      setStage("checkout");
+      setIsLoading(true);
+
+      try {
+        const allMessages = [
+          ...messages,
+          { role: "user" as const, content: userMsg },
+        ].map((m) => ({ role: m.role, content: m.content }));
+
+        await fetchAndHandle(allMessages, "checkout");
+      } catch (err) {
+        console.error("Checkout error:", err);
+        addAssistantMessage("Sorry, something went wrong during checkout.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [messages]
+  );
+
+  /** Optimize budget: find cheaper alternatives */
+  const optimizeBudget = useCallback(async () => {
+    const cart = lastCartRef.current;
+    if (!cart) return;
+
+    const userMsg = `Find cheaper alternatives for all items while keeping the same categories and quality level. Prioritize lowest total cost. Current total: $${cart.totalCost.toFixed(2)}, budget: $${cart.budget.toFixed(2)}`;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: "Optimize Budget — find the same setup, cheaper",
+        timestamp: new Date(),
+        stage: "review",
+      },
     ]);
 
-    setStage("checkout");
     setIsLoading(true);
 
     try {
@@ -368,10 +472,45 @@ export function useChat() {
         { role: "user" as const, content: userMsg },
       ].map((m) => ({ role: m.role, content: m.content }));
 
-      await fetchAndHandle(allMessages, "checkout");
+      await fetchAndHandle(allMessages, "research");
     } catch (err) {
-      console.error("Checkout error:", err);
-      addAssistantMessage("Sorry, something went wrong during checkout.");
+      console.error("Budget optimize error:", err);
+      addAssistantMessage("Sorry, something went wrong.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [messages]);
+
+  /** Optimize delivery: prioritize fastest shipping */
+  const optimizeDelivery = useCallback(async () => {
+    const cart = lastCartRef.current;
+    if (!cart) return;
+
+    const userMsg = `Re-rank all items prioritizing fastest delivery. Everything should arrive within 3 days if possible. Prioritize retailers with free/fast shipping. Current items: ${cart.items.map((i) => i.name).join(", ")}`;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: "Optimize Delivery — everything ASAP",
+        timestamp: new Date(),
+        stage: "review",
+      },
+    ]);
+
+    setIsLoading(true);
+
+    try {
+      const allMessages = [
+        ...messages,
+        { role: "user" as const, content: userMsg },
+      ].map((m) => ({ role: m.role, content: m.content }));
+
+      await fetchAndHandle(allMessages, "research");
+    } catch (err) {
+      console.error("Delivery optimize error:", err);
+      addAssistantMessage("Sorry, something went wrong.");
     } finally {
       setIsLoading(false);
     }
@@ -457,16 +596,21 @@ export function useChat() {
     setStage("identify");
     lastCartRef.current = null;
     contextRef.current = {};
+    setPendingCheckout(false);
   }, []);
 
   return {
     messages,
     isLoading,
     stage,
+    pendingCheckout,
     sendMessage,
     submitChecklist,
     submitClarification,
     confirmCheckout,
+    submitCheckoutForm,
+    optimizeBudget,
+    optimizeDelivery,
     selectAlternativeSet,
     swapAlternativeItem,
     cancelStream,
