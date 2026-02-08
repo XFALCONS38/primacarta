@@ -59,7 +59,7 @@ export function ClarificationForm({ request, onSubmit, disabled }: Clarification
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md rounded-xl border border-border bg-card p-4 shadow-sm"
+      className="w-full max-w-full rounded-xl border border-border bg-card p-4 shadow-sm overflow-hidden"
     >
       <h4 className="mb-3 font-display text-sm font-semibold text-foreground">
         {request.title}

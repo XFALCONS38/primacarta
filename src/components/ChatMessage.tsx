@@ -61,7 +61,7 @@ export function ChatMessageBubble({
         {isUser ? <User className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
       </div>
 
-      <div className="max-w-[85%] space-y-3">
+      <div className="max-w-[85%] min-w-0 overflow-hidden space-y-3">
         {/* Text content */}
         {message.content && (
           <div

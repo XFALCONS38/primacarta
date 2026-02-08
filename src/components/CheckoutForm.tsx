@@ -65,7 +65,7 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm"
+      className="w-full max-w-full space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm overflow-hidden"
     >
       <div className="text-center space-y-1">
         <h3 className="font-display text-lg font-semibold text-foreground">Checkout Details</h3>
