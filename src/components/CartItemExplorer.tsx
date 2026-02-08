@@ -77,11 +77,13 @@ function gatherAllItems(
     for (const [category, candidates] of Object.entries(searchCandidates)) {
       for (const candidate of candidates) {
         // Convert SearchCandidate to CartRecommendationItem-like structure
+        // Skip candidates with no valid price
+        if (!candidate.price || candidate.price <= 0) continue;
         const asItem: CartRecommendationItem = {
           name: candidate.name,
           category: category,
           retailer: candidate.retailer,
-          price: candidate.price ?? 0,
+          price: candidate.price,
           delivery_days: 5, // Default estimate for candidates
           emoji: "📦",
           url: candidate.url,

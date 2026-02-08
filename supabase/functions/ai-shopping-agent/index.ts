@@ -78,11 +78,25 @@ function extractRetailer(url: string): string {
 }
 
 /**
- * Try to extract a price from text content.
+ * Try to extract a price from text content. Handles $XX.XX, USD XX, and comma-separated prices.
+ * Returns null if no valid price found (never returns 0).
  */
 function extractPrice(text: string): number | null {
-  const match = text.match(/\$(\d{1,5}(?:\.\d{1,2})?)/);
-  return match ? parseFloat(match[1]) : null;
+  // Try multiple price patterns
+  const patterns = [
+    /\$(\d{1,5}(?:,\d{3})*(?:\.\d{1,2})?)/,          // $1,234.56 or $29.99
+    /USD\s*(\d{1,5}(?:,\d{3})*(?:\.\d{1,2})?)/i,      // USD 29.99
+    /(\d{1,5}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:USD|\$)/,  // 29.99 USD
+    /price[:\s]*\$?(\d{1,5}(?:,\d{3})*(?:\.\d{1,2})?)/i, // price: 29.99
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const val = parseFloat(match[1].replace(/,/g, ""));
+      if (val > 0) return val;
+    }
+  }
+  return null;
 }
 
 /**
@@ -354,6 +368,38 @@ function fixItemUrls(items: any[], allResults: ProductSearchResult[]): any[] {
   });
 }
 
+/**
+ * Fix items with $0 price by looking up the price from search candidates.
+ */
+function fixZeroPrices(items: any[], candidates: Record<string, SearchCandidate[]>): any[] {
+  return items.map((item) => {
+    if (item.price > 0) return item;
+
+    // Try to find a price from search candidates by matching name
+    const allCandidates = Object.values(candidates).flat();
+    let bestMatch: SearchCandidate | null = null;
+    let bestScore = 0;
+
+    for (const c of allCandidates) {
+      if (c.price && c.price > 0) {
+        const score = similarity(item.name || "", c.name);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = c;
+        }
+      }
+    }
+
+    if (bestMatch && bestScore >= 0.15 && bestMatch.price) {
+      console.log(`Price fix: "${item.name}" $0 → $${bestMatch.price} (from candidate "${bestMatch.name}", score: ${bestScore.toFixed(2)})`);
+      return { ...item, price: bestMatch.price };
+    }
+
+    console.warn(`Cannot fix $0 price for "${item.name}" — will be filtered`);
+    return item;
+  });
+}
+
 // ─── STAGE PROMPTS ───
 
 const STAGE_PROMPTS: Record<string, string> = {
@@ -438,7 +484,8 @@ Instructions:
 1. Build a combined cart from the search results above, selecting the best items across ANY retailers.
 2. Ensure the total cost does not exceed the user's budget.
 3. For EACH product include: name, category, retailer (actual site name like "Amazon", "Shein", "Temu", etc.), price, delivery_days (estimated), emoji, url (EXACT URL copied from search results above), reason (1 sentence explaining why this specific item was chosen), and optionally: rating, review_count, shipping_cost, original_price, discount_label, variant.
-4. Add "replace": true to each item.
+4. CRITICAL PRICE RULE: Every item MUST have a real price greater than $0. Extract the actual price from the search results. If you absolutely cannot determine a price for an item, estimate it reasonably based on the product type — NEVER use 0 as a price.
+5. Add "replace": true to each item.
 5. Generate 1-2 alternative_sets with different trade-offs (e.g., budget-friendly vs premium, faster delivery vs better reviews).
 6. Provide a detailed ranking_explanation covering WHY this set won — mention specific factors.
 7. Return structured JSON ONLY using the build_cart tool.
@@ -850,16 +897,37 @@ serve(async (req) => {
 
       console.log(`Tool call: ${toolName}`, JSON.stringify(toolArgs).slice(0, 300));
 
-      // Post-process build_cart: fix URLs using real search results
-      if (toolName === "build_cart" && searchResults.length > 0) {
-        console.log("Post-processing URLs for build_cart...");
+      // Post-process build_cart: fix URLs and filter $0 prices
+      if (toolName === "build_cart") {
+        if (searchResults.length > 0) {
+          console.log("Post-processing URLs for build_cart...");
+          if (toolArgs.items) {
+            toolArgs.items = fixItemUrls(toolArgs.items, searchResults);
+          }
+          if (toolArgs.alternative_sets) {
+            toolArgs.alternative_sets = toolArgs.alternative_sets.map((alt: any) => ({
+              ...alt,
+              items: alt.items ? fixItemUrls(alt.items, searchResults) : alt.items,
+            }));
+          }
+        }
+
+        // Fix $0 prices: try to recover from search candidates, otherwise remove
         if (toolArgs.items) {
-          toolArgs.items = fixItemUrls(toolArgs.items, searchResults);
+          toolArgs.items = fixZeroPrices(toolArgs.items, searchCandidates);
+          // Filter out any items that still have price 0 or negative
+          const before = toolArgs.items.length;
+          toolArgs.items = toolArgs.items.filter((item: any) => item.price > 0);
+          if (toolArgs.items.length < before) {
+            console.log(`Filtered out ${before - toolArgs.items.length} items with $0 price`);
+          }
+          // Recalculate total
+          toolArgs.total_cost = toolArgs.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0);
         }
         if (toolArgs.alternative_sets) {
           toolArgs.alternative_sets = toolArgs.alternative_sets.map((alt: any) => ({
             ...alt,
-            items: alt.items ? fixItemUrls(alt.items, searchResults) : alt.items,
+            items: alt.items ? fixZeroPrices(alt.items, searchCandidates).filter((item: any) => item.price > 0) : [],
           }));
         }
       }
