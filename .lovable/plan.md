@@ -1,231 +1,101 @@
 
 
-# "CartPilot" — Rebrand + Challenge Gap Analysis & Implementation Plan
+# Fix Product Discovery, Links, Dynamic Forms, and Sort Controls
 
-## Naming
+## Problems Identified
 
-Rename from "AI Shopping Agent" to **<Prima** — your AI co-pilot for shopping across the internet. It's short, memorable, aligns with the "delegation" theme of the challenge ("The future of commerce isn't more filters or better search. It's delegation."), and plays on the trending "copilot" AI concept.
-
-Tagline: *"Describe it. We cart it."*
-
-Other options if you prefer: **Swoop**, **Cartable**, **HAUL**, or **Kart**.
-
----
-
-## Challenge Scorecard: What's Built vs What's Missing
-
-| Requirement | Status | Notes |
-|---|---|---|
-| Conversational brief + constraints capture | DONE | identify, select, clarify stages |
-| Structured shopping spec (JSON) | PARTIAL | Captured internally but never shown to user |
-| Multi-retailer discovery (3+ retailers) | DONE | Firecrawl searches across all stores |
-| Ranking engine with transparent logic | DONE | Weighted scoring with explanation |
-| "Why is this option ranked #1?" | DONE | Collapsible ranking explanation |
-| Single combined cart view | DONE | Multi-retailer cart with budget bar |
-| Cart modification + agent adapts | DONE | Replace, swap, select alternative sets |
-| Checkout: address + payment entered ONCE | MISSING | Currently skips straight to simulation steps without collecting info |
-| Checkout: agent fans out per retailer (simulated) | DONE | Animated step-by-step per retailer |
-| Budget optimizer ("same setup, cheaper") | MISSING | Stretch goal from challenge |
-| Delivery optimizer ("everything by Friday") | MISSING | Stretch goal from challenge |
-| Decision trace / Explain mode | PARTIAL | Overall explanation exists, no per-item trace |
-| Example scenarios match challenge | NO | Challenge gives 3 specific scenarios; current examples are generic |
-| Search progress feedback | MISSING | User sees only a typing indicator during 10-15s search |
-| Landing page for VC demo | WEAK | Generic look, no value props or wow factor |
+1. **Only 1 product found per category** -- Firecrawl returns up to 5 results per category, but only the AI's single "winner" plus alternative set items are shown. All discovered candidates should be visible in the explorer.
+2. **Product links don't go to actual product pages** -- The LLM rewrites/hallucinates URLs instead of preserving the real Firecrawl result URLs. Links must come directly from search results.
+3. **No sort controls in the explorer** -- Users cannot sort items by price, rating, delivery speed, etc.
+4. **Clarification form fields are hardcoded** -- The prompt forces the same fixed fields (age_group, gender, size, colors, style) regardless of what the user is shopping for. A hackathon supply kit doesn't need "gender" or "size". The AI should generate context-appropriate fields.
+5. **Item category suggestions feel generic/fixed** -- The AI should tailor categories specifically to the user's scenario.
 
 ---
 
 ## Implementation Plan
 
-### 1. Rebrand: CartPilot
+### 1. Pass ALL Search Candidates to the Frontend
 
-**Files changed:** `index.html`, `src/pages/Index.tsx`, `src/components/ExamplePrompts.tsx`, `src/components/TypingIndicator.tsx`, `src/components/SessionHistory.tsx`, `src/components/ChatMessage.tsx`
+**File: `supabase/functions/ai-shopping-agent/index.ts`**
 
-- Change all "AI Shopping Agent" and "Shop Genie" references to "CartPilot"
-- Update page title in `index.html`
-- Update header, landing page title, and subtitle
-- New tagline: "Describe it. We cart it."
-- Replace the ShoppingCart icon in the header/avatar with a custom icon or keep ShoppingCart but with the "CartPilot" text
+- Increase Firecrawl search `limit` from `5` to `10` per category to get more candidates
+- After Firecrawl searches complete, return the raw search results alongside the AI response so the frontend can display ALL discovered products
+- Modify the edge function response format: instead of just `{ type, tool, data, text }`, add a `searchCandidates` field containing all raw search results grouped by category with their original URLs preserved
+- Each candidate will include: `title`, `url` (original Firecrawl URL), `price` (extracted), `retailer` (extracted from domain), `description`
 
-### 2. Landing Page Overhaul for VC Demo
-
-**File:** `src/pages/Index.tsx`
-
-Transform the landing page from a simple centered card into a compelling VC demo page:
-
-- Hero section with CartPilot name, tagline, and animated gradient background
-- Three-step visual: "Describe" arrow "We Search" arrow "You Buy" (using icons)
-- Value props row: "50+ Retailers", "Smart Ranking", "One Checkout"
-- Example prompts updated to the 3 challenge scenarios (below)
-- "How it works" mini flow diagram using the 6-stage pipeline
-- Clean, modern design that looks like a real product
-
-### 3. Example Prompts: Challenge Scenarios
-
-**File:** `src/components/ExamplePrompts.tsx`
-
-Replace current generic prompts with the 3 challenge scenarios plus 2 more:
-
+The response structure changes to:
 ```text
-1. "Full Patriots outfit head-to-toe, budget $150, delivered by Friday"
-   -> Super Bowl Party Outfit
-
-2. "Downhill skiing outfit, warm and waterproof, size M, budget $400, delivery within 5 days"
-   -> Skiing Outfit
-
-3. "I'm hosting a hackathon for 60 people - figure out snacks, badges, adapters, decorations, and prizes at the best price"
-   -> Hackathon Host Kit
-
-4. "Birthday party supplies for 20 people under $100"
-   -> Party Supplies
-
-5. "Complete travel accessories kit under $100"
-   -> Travel Kit
-```
-
-### 4. Checkout: Collect Address + Payment Once, Then Fan Out
-
-**Critical challenge requirement.** The current checkout skips collecting user info entirely.
-
-**New file:** `src/components/CheckoutForm.tsx`
-
-A single form that collects:
-- Full name
-- Shipping address (street, city, state, ZIP)
-- Payment method (simulated card: last 4 digits only, no real data)
-- Email for order confirmation
-
-**Flow change in `useChat.ts` and `CheckoutSimulation.tsx`:**
-
-```text
-Current:  Cart -> "Confirm & Checkout" -> animated step-by-step
-New:      Cart -> "Confirm & Checkout" -> CheckoutForm (fill once)
-          -> "Place Orders" -> animated step-by-step per retailer
-          -> Each retailer step shows "Using address: [user's address]"
-          -> Final: "Confirmation email sent to [email]" (simulated)
-```
-
-**Implementation:**
-- Add `checkoutInfo` state to `useChat.ts` (name, address, payment, email)
-- New `CheckoutForm` component renders between cart confirmation and simulation
-- Update `CheckoutSimulation` to display the user's address/payment at each retailer step
-- After simulation completes, show a simulated email confirmation card
-
-### 5. Search Progress Indicator
-
-**File:** `src/components/SearchProgress.tsx` (new), `src/hooks/useChat.ts`, edge function
-
-Currently the user sees only a generic typing indicator for 10-15 seconds while Firecrawl searches. This is the weakest UX moment.
-
-**Option A (simpler, no backend changes):**
-- Replace the typing indicator during the research stage with a `SearchProgress` component
-- Show animated text: "Searching jerseys across 50+ stores...", "Comparing prices...", "Ranking by reviews, delivery, and value..."
-- Use a rotating list of messages with a progress bar (time-based, ~15 seconds)
-
-**Option B (backend streaming, more complex):**
-Not feasible within time constraints since it requires SSE/streaming from the edge function.
-
-Go with **Option A** — a visually impressive simulated progress that makes the wait feel productive.
-
-### 6. Budget Optimizer ("Same Setup, Cheaper")
-
-**Files:** `src/components/CartRecommendation.tsx`, `src/hooks/useChat.ts`, edge function
-
-Add a "Find Cheaper" button to the cart UI (next to "Confirm & Checkout"):
-
-- Button with a tag/dollar icon: "Optimize Budget"
-- When clicked, sends a message to the review stage: "Find cheaper alternatives for all items while keeping the same categories and quality level. Prioritize lowest total cost."
-- The edge function triggers fresh Firecrawl searches for each category with price-focused queries
-- Returns a new cart with budget-optimized picks
-
-### 7. Delivery Optimizer ("Everything by Friday")
-
-**Files:** Same as above
-
-Add a "Speed Up Delivery" button:
-
-- Button with a truck/clock icon: "Optimize Delivery"
-- When clicked, sends: "Re-rank all items prioritizing fastest delivery. Everything should arrive within [delivery_by date or 3 days]. Prioritize retailers with free/fast shipping."
-- Returns re-ranked cart favoring fast-shipping retailers
-
-### 8. Structured Shopping Spec Display
-
-**New file:** `src/components/ShoppingSpec.tsx`
-
-After the clarification form is submitted, display a collapsible "Shopping Spec" card that shows the extracted JSON:
-
-```text
-Shopping Spec
 {
-  "scenario": "Super Bowl Party Outfit",
-  "budget": 150,
-  "delivery_by": "Friday",
-  "location": "02101",
-  "items": ["Jersey", "Cap", "Sneakers", ...],
-  "preferences": {
-    "team": "Patriots",
-    "size": "L",
-    "style": "sporty"
+  type: "tool_call",
+  tool: "build_cart",
+  data: { ... },           // AI's ranked picks
+  text: "...",
+  searchCandidates: {       // NEW: all raw results
+    "Jersey": [
+      { name: "...", url: "https://amazon.com/...", retailer: "Amazon", ... },
+      { name: "...", url: "https://shein.com/...", retailer: "Shein", ... },
+      ...
+    ],
+    "Cap": [ ... ]
   }
 }
 ```
 
-This directly addresses the challenge requirement: "Output: a structured shopping spec (e.g. JSON)."
+### 2. Fix Product Links -- Preserve Real URLs
 
-**Implementation:**
-- Parse the clarification values + selected items into a clean JSON spec
-- Show it as a collapsible card in the chat after clarification submission
-- Add it as an assistant message with a new `shoppingSpec` field on `ChatMessage`
+**File: `supabase/functions/ai-shopping-agent/index.ts`**
 
-### 9. Per-Item Decision Trace
+- Update `buildResearchPrompt()` to explicitly instruct the LLM: "Use the EXACT URLs from the search results. Do NOT modify, shorten, or fabricate URLs."
+- Add a post-processing step after the AI returns `build_cart`: cross-reference each item's URL against the original Firecrawl results by matching product name/title. If the AI's URL doesn't match any real result, replace it with the closest matching Firecrawl URL.
+- This ensures every product link is a real, clickable URL from Firecrawl.
 
-**Files:** `src/components/CartRecommendation.tsx`, edge function prompt
+### 3. Add Sort Controls to CartItemExplorer
 
-Enhance the cart UI to show why each specific item was chosen:
+**File: `src/components/CartItemExplorer.tsx`**
 
-- Add a small info icon next to each cart item
-- On click/hover, show a tooltip: "Best value: 4.5 stars with 2,300 reviews. Free shipping. 15% cheaper than alternatives."
-- Update the edge function's research prompt to include a `reason` field per item in the build_cart tool schema
-- Update `CartRecommendationItem` type to include `reason?: string`
+- Add a sort dropdown at the top of each category tab with options:
+  - Score (default, current behavior)
+  - Price: Low to High
+  - Price: High to Low
+  - Rating: Best First
+  - Delivery: Fastest First
+  - Reviews: Most Reviewed
+- Store sort selection per category tab using local state
+- Re-sort the items array based on the selected criterion before rendering
 
-### 10. Remove Dead Code
+### 4. Make Clarification Form Fully Dynamic (AI-Generated)
 
-**File to delete:** `src/data/products.ts`
+**Files: `supabase/functions/ai-shopping-agent/index.ts`, `src/config/agentStages.ts`**
 
-This static 85-item mock catalog is no longer used anywhere (Firecrawl handles all product search now). Remove it to keep the codebase clean.
+Current behavior: The `clarify` prompt hardcodes 9+ specific fields. This means every shopping scenario gets the same form regardless of context.
 
-### 11. Dark Mode Support
+New behavior: Update the `clarify` system prompt to:
+- Keep only 3 mandatory fields: `budget`, `location`, and `delivery_by`
+- Instruct the AI to dynamically generate additional fields relevant to the specific product categories the user selected
+- For example:
+  - Skiing outfit: generates fields for "Insulation type", "Waterproof rating", "Boot size", "Preferred colors"
+  - Hackathon kit: generates fields for "Number of attendees", "Dietary restrictions", "Prize budget", "Venue type"
+  - Super Bowl outfit: generates fields for "Team name", "Jersey size", "Hat style", "Color scheme"
+- The AI decides what fields are relevant based on the items selected and the original user prompt
+- Remove the hardcoded field lists from both `agentStages.ts` (frontend) and the edge function prompt
 
-**Files:** `src/App.tsx`, `src/pages/Index.tsx`
+### 5. Update CartItemExplorer to Show ALL Candidates
 
-- next-themes is already installed but not configured
-- Add `ThemeProvider` wrapper in `App.tsx`
-- Add a sun/moon toggle button in the chat header
-- The CSS already has `.dark` variables defined
+**Files: `src/components/CartItemExplorer.tsx`, `src/hooks/useChat.ts`, `src/types/chat.ts`**
 
----
+- Add a new `searchCandidates` field to `CartRecommendation` type (and to `ChatMessage` via `cartData`)
+- Update `useChat.ts` `handleToolCallResponse` for `build_cart` to read `searchCandidates` from the edge function response and merge them into the cart data
+- Update `CartItemExplorer` to display candidates from `searchCandidates` in addition to the AI's main and alternative picks
+- Each candidate card shows: name (clickable link to real URL), retailer, price, and a "data from search" badge to distinguish from AI-ranked picks
 
-## Priority Order for Implementation
+### 6. Make Item Category Suggestions Truly Dynamic
 
-Since this is for a 24-hour hackathon, here's the execution order by impact:
+**File: `supabase/functions/ai-shopping-agent/index.ts`**
 
-```text
-Priority 1 - MUST (directly judged):
-  1. Rebrand to CartPilot (15 min)
-  2. Example prompts -> 3 challenge scenarios (10 min)
-  3. Checkout form: address + payment once (45 min)
-  4. Search progress indicator (20 min)
-  5. Landing page overhaul (30 min)
-
-Priority 2 - HIGH IMPACT (stretch goals that impress):
-  6. Budget optimizer button (20 min)
-  7. Delivery optimizer button (15 min)
-  8. Structured shopping spec display (20 min)
-
-Priority 3 - POLISH:
-  9. Per-item decision trace (25 min)
-  10. Remove dead code (5 min)
-  11. Dark mode toggle (15 min)
-```
+- Update the `identify` system prompt to emphasize: "Analyze the user's specific scenario and suggest item categories that are uniquely relevant to THEIR request. Do NOT use generic categories."
+- Add examples in the prompt to guide the AI:
+  - "Skiing outfit" should yield categories like "Ski Jacket", "Ski Pants", "Base Layer", "Goggles", "Gloves", "Ski Socks", "Helmet", "Neck Gaiter"
+  - "Hackathon for 60 people" should yield "Snack Boxes", "Name Badges", "USB-C Adapters", "Banner/Signage", "Trophies/Prizes", "Extension Cords", "Stickers"
 
 ---
 
@@ -233,19 +103,46 @@ Priority 3 - POLISH:
 
 | File | Change |
 |---|---|
-| `index.html` | Title to "CartPilot" |
-| `src/pages/Index.tsx` | Full landing page overhaul + rebrand |
-| `src/components/ExamplePrompts.tsx` | 3 challenge scenarios + 2 extras |
-| `src/components/CheckoutForm.tsx` | NEW: address + payment form (enter once) |
-| `src/components/SearchProgress.tsx` | NEW: animated search progress during research |
-| `src/components/ShoppingSpec.tsx` | NEW: structured JSON spec display |
-| `src/components/CartRecommendation.tsx` | Add "Optimize Budget" + "Optimize Delivery" buttons, per-item reason tooltip |
-| `src/components/CheckoutSimulation.tsx` | Show user's address/payment at each retailer step, email confirmation |
-| `src/components/ChatMessage.tsx` | Render ShoppingSpec + SearchProgress components |
-| `src/hooks/useChat.ts` | Checkout form state, optimizer actions, shopping spec generation, search progress stage |
-| `src/types/chat.ts` | Add `reason` to CartRecommendationItem, `shoppingSpec` to ChatMessage, `CheckoutInfo` type |
-| `src/config/agentStages.ts` | Add `reason` field to build_cart tool schema |
-| `supabase/functions/ai-shopping-agent/index.ts` | Add `reason` per item in research prompt, update tool schema |
-| `src/App.tsx` | ThemeProvider wrapper |
-| `src/data/products.ts` | DELETE (dead code) |
+| `supabase/functions/ai-shopping-agent/index.ts` | Increase search limit to 10. Return `searchCandidates` in response. Fix URL preservation. Update clarify prompt to be dynamic. Update identify prompt for better categories. Post-process URLs. |
+| `src/components/CartItemExplorer.tsx` | Add sort dropdown per category tab. Accept and display `searchCandidates`. |
+| `src/hooks/useChat.ts` | Read `searchCandidates` from edge function response and store in cart data. |
+| `src/types/chat.ts` | Add `searchCandidates` field to `CartRecommendation` type. |
+| `src/config/agentStages.ts` | Update clarify prompt to remove hardcoded fields. Update identify prompt. |
+
+---
+
+## Technical Details
+
+### URL Preservation Logic (Edge Function)
+
+```text
+After AI returns build_cart:
+1. Collect all Firecrawl URLs into a map: { normalizedTitle -> originalURL }
+2. For each item in AI's response:
+   a. If item.url matches a known Firecrawl URL -> keep it
+   b. If not, fuzzy-match item.name against Firecrawl titles
+   c. Replace with best-matching real URL
+3. Same for alternative_sets items
+```
+
+### Sort Control UI
+
+A small `Select` dropdown placed between the tab triggers and the item list:
+```text
+[Score v] [Price: Low-High] [Rating] [Delivery] [Reviews]
+```
+
+Each option re-sorts the current category's items. Default is "Score" (composite scoring).
+
+### Dynamic Clarification Prompt (Key Change)
+
+The new prompt tells the AI:
+```text
+"Generate a form with fields specifically relevant to the user's 
+selected item categories. ALWAYS include budget, location, and 
+delivery deadline. Then add 4-8 fields that make sense for THIS 
+specific shopping scenario. Do NOT use a fixed template."
+```
+
+This ensures a hackathon kit gets "Number of attendees" while a skiing outfit gets "Jacket size" and "Waterproof rating".
 
