@@ -99,6 +99,16 @@ export interface AlternativeSet {
   ranking_explanation: string;
 }
 
+// Search candidate from raw Firecrawl results
+export interface SearchCandidate {
+  name: string;
+  url: string;
+  retailer: string;
+  price: number | null;
+  description: string;
+  category: string;
+}
+
 export interface CartRecommendation {
   summary: string;
   items: CartRecommendationItem[];
@@ -106,6 +116,7 @@ export interface CartRecommendation {
   budget: number;
   rankingExplanation?: string;
   alternativeSets?: AlternativeSet[];
+  searchCandidates?: Record<string, SearchCandidate[]>;
 }
 
 // Checkout simulation step (stage 6)

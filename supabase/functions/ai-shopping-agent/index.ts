@@ -20,9 +20,73 @@ interface ProductSearchResult {
   results: SearchResult[];
 }
 
+// Candidate format sent to frontend
+interface SearchCandidate {
+  name: string;
+  url: string;
+  retailer: string;
+  price: number | null;
+  description: string;
+  category: string;
+}
+
+/**
+ * Extract retailer name from a URL's domain.
+ */
+function extractRetailer(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.replace("www.", "");
+    const domainMap: Record<string, string> = {
+      "amazon.com": "Amazon",
+      "walmart.com": "Walmart",
+      "target.com": "Target",
+      "shein.com": "Shein",
+      "temu.com": "Temu",
+      "aliexpress.com": "AliExpress",
+      "ebay.com": "eBay",
+      "bestbuy.com": "Best Buy",
+      "etsy.com": "Etsy",
+      "nordstrom.com": "Nordstrom",
+      "costco.com": "Costco",
+      "wayfair.com": "Wayfair",
+      "nike.com": "Nike",
+      "adidas.com": "Adidas",
+      "asos.com": "ASOS",
+      "zara.com": "Zara",
+      "hm.com": "H&M",
+      "macys.com": "Macy's",
+      "homedepot.com": "Home Depot",
+      "lowes.com": "Lowe's",
+      "rei.com": "REI",
+      "dickssportinggoods.com": "Dick's",
+      "backcountry.com": "Backcountry",
+      "zappos.com": "Zappos",
+      "overstock.com": "Overstock",
+      "kohls.com": "Kohl's",
+      "newegg.com": "Newegg",
+    };
+    for (const [domain, name] of Object.entries(domainMap)) {
+      if (hostname.includes(domain)) return name;
+    }
+    // Capitalize first letter of domain
+    const parts = hostname.split(".");
+    const base = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+    return base.charAt(0).toUpperCase() + base.slice(1);
+  } catch {
+    return "Unknown";
+  }
+}
+
+/**
+ * Try to extract a price from text content.
+ */
+function extractPrice(text: string): number | null {
+  const match = text.match(/\$(\d{1,5}(?:\.\d{1,2})?)/);
+  return match ? parseFloat(match[1]) : null;
+}
+
 /**
  * Search for products using Firecrawl web search API.
- * Supports optional site filtering and location-based queries.
  */
 async function searchProducts(
   query: string,
@@ -31,7 +95,6 @@ async function searchProducts(
   firecrawlKey: string,
   buyerContext?: string
 ): Promise<SearchResult[]> {
-  // Build search query with location and buyer context
   let searchQuery = `${query} buy online price reviews shipping`;
   if (buyerContext) {
     searchQuery += ` ${buyerContext}`;
@@ -40,7 +103,6 @@ async function searchProducts(
     searchQuery += ` delivery to ${location}`;
   }
 
-  // Add site: filters if specific retailers requested
   if (preferredRetailers.length > 0 && !preferredRetailers.includes("Any")) {
     const siteMap: Record<string, string> = {
       "Amazon": "amazon.com",
@@ -82,7 +144,7 @@ async function searchProducts(
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 5,
+        limit: 10,
         scrapeOptions: { formats: ["markdown"] },
       }),
     });
@@ -98,7 +160,6 @@ async function searchProducts(
       title: r.title || "",
       url: r.url || "",
       description: r.description || "",
-      // Truncate markdown to keep token count manageable
       markdown: (r.markdown || r.description || "").slice(0, 600),
     }));
 
@@ -111,8 +172,8 @@ async function searchProducts(
 }
 
 /**
- * Search for products across all selected item categories in parallel.
- * Returns a formatted context block for the AI prompt.
+ * Search all categories in parallel.
+ * Returns both a formatted context string for the AI prompt AND raw search candidates.
  */
 async function searchAllCategories(
   categories: string[],
@@ -120,7 +181,7 @@ async function searchAllCategories(
   preferredRetailers: string[],
   firecrawlKey: string,
   buyerContext?: string
-): Promise<string> {
+): Promise<{ context: string; candidates: Record<string, SearchCandidate[]>; allResults: ProductSearchResult[] }> {
   console.log(`Searching ${categories.length} categories...`);
 
   const searchPromises = categories.map(async (category) => {
@@ -138,29 +199,46 @@ async function searchAllCategories(
   }
 
   if (successfulResults.length === 0) {
-    return "No products found. Please suggest the user try different search terms or broader retailer options.";
+    return {
+      context: "No products found. Please suggest the user try different search terms or broader retailer options.",
+      candidates: {},
+      allResults: [],
+    };
   }
 
-  // Format results into a structured context block
+  // Build context string for AI
   let context = "";
+  // Build candidates map for frontend
+  const candidates: Record<string, SearchCandidate[]> = {};
+
   for (const { category, results } of successfulResults) {
     context += `\n=== ${category.toUpperCase()} ===\n`;
+    candidates[category] = [];
+
     for (const r of results) {
       context += `\n--- Product ---\n`;
       context += `Title: ${r.title}\n`;
       context += `URL: ${r.url}\n`;
       context += `Description: ${r.description}\n`;
       context += `Details:\n${r.markdown}\n`;
+
+      candidates[category].push({
+        name: r.title || "Unknown Product",
+        url: r.url,
+        retailer: extractRetailer(r.url),
+        price: extractPrice(r.markdown + " " + r.description),
+        description: (r.description || "").slice(0, 200),
+        category,
+      });
     }
   }
 
-  console.log(`Total search context: ${context.length} chars`);
-  return context;
+  console.log(`Total search context: ${context.length} chars, candidates: ${Object.keys(candidates).length} categories`);
+  return { context, candidates, allResults: successfulResults };
 }
 
 /**
- * Extract structured info from conversation messages:
- * categories, location, budget, preferences, preferred retailers
+ * Extract structured info from conversation messages.
  */
 function extractContextFromMessages(messages: { role: string; content: string }[]): {
   categories: string[];
@@ -172,23 +250,19 @@ function extractContextFromMessages(messages: { role: string; content: string }[
 } {
   const fullText = messages.map((m) => m.content).join("\n");
 
-  // Extract item categories from "I want these items: X, Y, Z"
   const itemsMatch = fullText.match(/I want these items:\s*(.+)/i);
   const categories = itemsMatch
     ? itemsMatch[1].split(",").map((s) => s.trim()).filter(Boolean)
     : [];
 
-  // Extract location (ZIP code or city/state)
   const locationMatch = fullText.match(
     /(?:location|zip|zip code|city|deliver to|shipping to)[:\s]*([A-Za-z0-9\s,]+?)(?:\.|,\s*(?:budget|preferred|style|colors|delivery)|$)/im
   );
   const location = locationMatch ? locationMatch[1].trim() : "";
 
-  // Extract budget
   const budgetMatch = fullText.match(/budget[:\s]*\$?(\d+(?:\.\d{1,2})?)/i);
   const budget = budgetMatch ? parseFloat(budgetMatch[1]) : 0;
 
-  // Extract preferred retailers
   const retailerMatch = fullText.match(
     /(?:preferred retailers|retailers|preferred stores|stores|preferred_retailers)[:\s]*(.+?)(?:\.|,\s*(?:budget|location|style|colors|delivery)|$)/im
   );
@@ -196,7 +270,6 @@ function extractContextFromMessages(messages: { role: string; content: string }[
     ? retailerMatch[1].split(",").map((s) => s.trim()).filter(Boolean)
     : [];
 
-  // Extract buyer characteristics for search specificity
   const buyerParts: string[] = [];
 
   const sizeMatch = fullText.match(/(?:size)[:\s]*([A-Za-z0-9\s\/]+?)(?:,|$)/im);
@@ -215,46 +288,111 @@ function extractContextFromMessages(messages: { role: string; content: string }[
   if (styleMatch) buyerParts.push(styleMatch[1].trim());
 
   const buyerContext = buyerParts.join(" ");
-
-  // Everything else as preferences context
   const preferences = fullText;
 
   return { categories, location, budget, preferences, preferredRetailers, buyerContext };
 }
 
+// ─── URL PRESERVATION ───
+
+/**
+ * Normalize a string for fuzzy matching.
+ */
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Simple word overlap similarity between two strings (0-1).
+ */
+function similarity(a: string, b: string): number {
+  const wordsA = new Set(normalize(a).split(" "));
+  const wordsB = new Set(normalize(b).split(" "));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  let overlap = 0;
+  for (const w of wordsA) {
+    if (wordsB.has(w)) overlap++;
+  }
+  return overlap / Math.max(wordsA.size, wordsB.size);
+}
+
+/**
+ * Post-process AI cart items: replace hallucinated URLs with real Firecrawl URLs.
+ */
+function fixItemUrls(items: any[], allResults: ProductSearchResult[]): any[] {
+  // Build a flat list of all known real URLs with their titles
+  const realProducts: { title: string; url: string }[] = [];
+  for (const { results } of allResults) {
+    for (const r of results) {
+      if (r.url) realProducts.push({ title: r.title, url: r.url });
+    }
+  }
+
+  const realUrlSet = new Set(realProducts.map((p) => p.url));
+
+  return items.map((item) => {
+    // If the AI's URL is already a real one, keep it
+    if (item.url && realUrlSet.has(item.url)) return item;
+
+    // Otherwise, fuzzy-match by name against real product titles
+    let bestMatch = "";
+    let bestScore = 0;
+    for (const rp of realProducts) {
+      const score = similarity(item.name || "", rp.title);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = rp.url;
+      }
+    }
+
+    if (bestScore >= 0.2 && bestMatch) {
+      console.log(`URL fix: "${item.name}" → ${bestMatch} (score: ${bestScore.toFixed(2)})`);
+      return { ...item, url: bestMatch };
+    }
+
+    return item;
+  });
+}
+
 // ─── STAGE PROMPTS ───
 
 const STAGE_PROMPTS: Record<string, string> = {
-  identify: `You are a concise AI shopping assistant. The user will describe their shopping need in one message.
+  identify: `You are Prima, a concise AI shopping assistant. The user will describe their shopping need in one message.
 
 Instructions:
 - Respond in 1-2 sentences maximum acknowledging their request.
-- Suggest 8-12 item categories for their scenario (e.g., "Jersey", "Cap", "Cooler").
-- Do NOT list actual products.
-- Return your tool call using the suggest_items tool with JSON: { "brief_response": "...", "items": [{ "id": "...", "label": "...", "emoji": "..." }...] }
+- Analyze the user's SPECIFIC scenario and suggest 8-12 item categories that are uniquely relevant to THEIR request.
+- Do NOT use generic categories. Tailor every suggestion to the user's exact situation.
+- Examples:
+  - "Skiing outfit" → "Ski Jacket", "Ski Pants", "Base Layer", "Goggles", "Ski Gloves", "Ski Socks", "Helmet", "Neck Gaiter", "Hand Warmers"
+  - "Hackathon for 60 people" → "Snack Boxes", "Name Badges", "USB-C Adapters", "Banner/Signage", "Trophies/Prizes", "Extension Cords", "Stickers", "Lanyards"
+  - "Super Bowl party outfit" → "Team Jersey", "Team Cap", "Face Paint", "Rally Towel", "Team Scarf", "Sneakers", "Sunglasses", "Foam Finger"
+  - "Birthday party for 20" → "Party Plates & Cups", "Balloons", "Banner/Decorations", "Cake Topper", "Party Favors", "Tablecloth", "Candles", "Gift Bags"
+- Do NOT list actual products, only categories.
+- Return your tool call using the suggest_items tool.
 - Always keep it short, clear, and friendly.`,
 
-  clarify: `You are a concise AI shopping assistant. The user has selected item categories.
+  clarify: `You are Prima, a concise AI shopping assistant. The user has selected item categories they want to shop for.
 
 Instructions:
-- Call the request_clarification tool to generate a form for the user to fill in.
-- ALWAYS include these core fields:
+- Call the request_clarification tool to generate a CONTEXT-APPROPRIATE form.
+- ALWAYS include these 3 core fields:
   1. "budget" (type: number, required: true, label: "Budget ($)")
   2. "delivery_by" (type: text, required: false, label: "Need it by (date)")
-  3. "location" (type: text, required: true, label: "Delivery location (ZIP code or City, State)")
-  4. "preferred_retailers" (type: multiselect, required: false, label: "Preferred retailers", options: ["Any (search everywhere)", "Amazon", "Walmart", "Target", "Shein", "Temu", "AliExpress", "eBay", "Best Buy", "Etsy", "Nordstrom", "Nike", "Adidas"])
-- ALWAYS include these buyer characteristic fields (adapt labels/options to the shopping context):
-  5. "age_group" (type: select, required: false, label: "Age group", options: ["Child (2-12)", "Teen (13-17)", "Adult (18-64)", "Senior (65+)"])
-  6. "gender" (type: select, required: false, label: "Gender", options: ["Male", "Female", "Unisex", "Prefer not to say"])
-  7. "size" (type: text, required: false, label: "Size (e.g., S/M/L/XL, shoe size, or measurements)")
-  8. "colors" (type: text, required: false, label: "Preferred colors")
-  9. "style" (type: text, required: false, label: "Style preference (e.g., casual, sporty, formal)")
-- Also include relevant category-specific fields: team/theme, brand preferences, material, must_haves, nice_to_haves.
-- Pre-fill any known values from user input (e.g., if they mentioned a budget or team).
+  3. "location" (type: text, required: true, label: "Delivery location (ZIP or City, State)")
+- ALWAYS include "preferred_retailers" (type: multiselect, required: false, label: "Preferred retailers", options: ["Any (search everywhere)", "Amazon", "Walmart", "Target", "Shein", "Temu", "AliExpress", "eBay", "Best Buy", "Etsy", "Nordstrom", "Nike", "Adidas"])
+- Then add 4-8 ADDITIONAL fields that are specifically relevant to THIS shopping scenario and the selected item categories.
+- Do NOT use a fixed template. Generate fields dynamically based on context.
+- Examples of scenario-specific fields:
+  - Skiing outfit: "Jacket insulation type" (select: Down, Synthetic, Fleece), "Waterproof rating" (select: Light, Moderate, Heavy), "Boot size", "Preferred colors"
+  - Hackathon kit: "Number of attendees" (number), "Dietary restrictions" (text), "Prize budget" (number), "Venue type" (select: Office, Convention center, University)
+  - Super Bowl outfit: "Team name" (text), "Jersey size" (select: S, M, L, XL, XXL), "Color scheme" (text), "Hat style" (select: Snapback, Fitted, Beanie)
+  - Birthday party: "Age of birthday person" (number), "Theme" (text), "Indoor or outdoor" (select), "Color scheme" (text)
+- Pre-fill any known values from user input.
 - Return only the tool call JSON.
 - Do not write conversational text outside the tool call.`,
 
-  // research prompt is dynamically built with search results — see buildResearchPrompt()
+  // research prompt is dynamically built — see buildResearchPrompt()
   research: "",
 
   review: `You are a concise AI shopping assistant. The user is reviewing their cart.
@@ -283,6 +421,8 @@ Instructions:
 function buildResearchPrompt(searchContext: string, location: string): string {
   return `You are Prima, an agentic commerce AI. Below are REAL product search results from across the internet. Use ONLY these results to build the cart — do NOT make up products or URLs.
 
+CRITICAL URL RULE: You MUST use the EXACT URLs from the search results below. Do NOT modify, shorten, rewrite, or fabricate any URLs. Copy them character-for-character from the search results. If you cannot find a URL for a product, omit the url field entirely rather than guessing.
+
 SEARCH RESULTS:
 ${searchContext}
 
@@ -297,12 +437,13 @@ RANKING CRITERIA (weighted scoring — use these to pick the BEST overall set):
 Instructions:
 1. Build a combined cart from the search results above, selecting the best items across ANY retailers.
 2. Ensure the total cost does not exceed the user's budget.
-3. For EACH product include: name, category, retailer (actual site name like "Amazon", "Shein", "Temu", etc.), price, delivery_days (estimated), emoji, url (direct product link), reason (1 sentence explaining why this specific item was chosen), and optionally: rating, review_count, shipping_cost, original_price, discount_label, variant.
+3. For EACH product include: name, category, retailer (actual site name like "Amazon", "Shein", "Temu", etc.), price, delivery_days (estimated), emoji, url (EXACT URL copied from search results above), reason (1 sentence explaining why this specific item was chosen), and optionally: rating, review_count, shipping_cost, original_price, discount_label, variant.
 4. Add "replace": true to each item.
 5. Generate 1-2 alternative_sets with different trade-offs (e.g., budget-friendly vs premium, faster delivery vs better reviews).
 6. Provide a detailed ranking_explanation covering WHY this set won — mention specific factors.
 7. Return structured JSON ONLY using the build_cart tool.
-8. Do NOT hallucinate products — use the search results above ONLY.`;
+8. Do NOT hallucinate products — use the search results above ONLY.
+9. REMEMBER: URLs must be copied EXACTLY from the search results. No fabrication.`;
 }
 
 /**
@@ -314,12 +455,14 @@ function buildReviewPromptWithSearch(searchContext: string): string {
 Below are FRESH search results for alternative products:
 ${searchContext}
 
+CRITICAL URL RULE: Use the EXACT URLs from the search results. Do NOT modify or fabricate URLs.
+
 Instructions:
 - Use the search results above to suggest replacements. Do NOT make up products.
 - Return updated cart JSON using the build_cart tool.
 - Keep all unreplaced items exactly as they were.
 - The retailer field can be ANY online store name.
-- Include url, rating, review_count, shipping_cost, original_price, discount_label where available.`;
+- Include url (EXACT from search results), rating, review_count, shipping_cost, original_price, discount_label where available.`;
 }
 
 // ─── TOOL DEFINITIONS ───
@@ -355,7 +498,7 @@ const TOOLS: Record<string, any> = {
     type: "function",
     function: {
       name: "request_clarification",
-      description: "Request additional details from the buyer via a structured form.",
+      description: "Request additional details from the buyer via a structured form. Generate fields dynamically based on the shopping scenario.",
       parameters: {
         type: "object",
         properties: {
@@ -402,7 +545,7 @@ const TOOLS: Record<string, any> = {
                 emoji: { type: "string" },
                 variant: { type: "string" },
                 replace: { type: "boolean", description: "Whether this item can be replaced" },
-                url: { type: "string", description: "Direct product page URL" },
+                url: { type: "string", description: "EXACT product page URL from search results — do NOT fabricate" },
                 rating: { type: "number", description: "Star rating (e.g. 4.5)" },
                 review_count: { type: "number", description: "Number of reviews" },
                 shipping_cost: { type: "number", description: "Shipping cost (0 = free)" },
@@ -496,6 +639,10 @@ const STAGE_TOOLS: Record<string, string[]> = {
 
 const OPENAI_MODEL = "gpt-4o-mini";
 
+// Store search results per request for URL post-processing
+let _lastSearchResults: ProductSearchResult[] = [];
+let _lastSearchCandidates: Record<string, SearchCandidate[]> = {};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -564,6 +711,8 @@ serve(async (req) => {
 
     // ─── RESEARCH STAGE: Firecrawl search → AI ranking ───
     let systemPrompt = STAGE_PROMPTS[stage] || STAGE_PROMPTS.identify;
+    let searchResults: ProductSearchResult[] = [];
+    let searchCandidates: Record<string, SearchCandidate[]> = {};
 
     if (stage === "research") {
       if (!FIRECRAWL_API_KEY) {
@@ -584,14 +733,16 @@ serve(async (req) => {
       }));
 
       if (ctx.categories.length > 0) {
-        const searchContext = await searchAllCategories(
+        const searchData = await searchAllCategories(
           ctx.categories,
           ctx.location,
           ctx.preferredRetailers,
           FIRECRAWL_API_KEY,
           ctx.buyerContext
         );
-        systemPrompt = buildResearchPrompt(searchContext, ctx.location);
+        systemPrompt = buildResearchPrompt(searchData.context, ctx.location);
+        searchResults = searchData.allResults;
+        searchCandidates = searchData.candidates;
       } else {
         console.warn("No categories extracted, falling back to basic research prompt");
         systemPrompt = buildResearchPrompt("No specific product search results available. Ask the user to clarify what items they want.", "");
@@ -604,7 +755,6 @@ serve(async (req) => {
       const isReplacement = lastUserMsg?.content && /replace|swap|switch|alternative|instead|different|use.*set/i.test(lastUserMsg.content);
 
       if (isReplacement) {
-        // Extract what category to search for
         const replaceMatch = lastUserMsg.content.match(/replace\s+"?([^"]+)"?\s+with/i) ||
           lastUserMsg.content.match(/replace\s+"?([^"]+)"?/i) ||
           lastUserMsg.content.match(/swap\s+"?([^"]+)"?\s+/i);
@@ -614,7 +764,7 @@ serve(async (req) => {
         const ctx = extractContextFromMessages(messages);
         console.log(`Review replacement search for: "${searchQuery}"`);
 
-        const searchResults = await searchProducts(
+        const results = await searchProducts(
           searchQuery,
           ctx.location,
           ctx.preferredRetailers,
@@ -622,12 +772,13 @@ serve(async (req) => {
           ctx.buyerContext
         );
 
-        if (searchResults.length > 0) {
+        if (results.length > 0) {
           let searchContext = `\n=== REPLACEMENT OPTIONS for "${itemToReplace}" ===\n`;
-          for (const r of searchResults) {
+          for (const r of results) {
             searchContext += `\n--- Product ---\nTitle: ${r.title}\nURL: ${r.url}\nDescription: ${r.description}\nDetails:\n${r.markdown}\n`;
           }
           systemPrompt = buildReviewPromptWithSearch(searchContext);
+          searchResults = [{ category: itemToReplace, results }];
         }
       }
     }
@@ -699,13 +850,34 @@ serve(async (req) => {
 
       console.log(`Tool call: ${toolName}`, JSON.stringify(toolArgs).slice(0, 300));
 
+      // Post-process build_cart: fix URLs using real search results
+      if (toolName === "build_cart" && searchResults.length > 0) {
+        console.log("Post-processing URLs for build_cart...");
+        if (toolArgs.items) {
+          toolArgs.items = fixItemUrls(toolArgs.items, searchResults);
+        }
+        if (toolArgs.alternative_sets) {
+          toolArgs.alternative_sets = toolArgs.alternative_sets.map((alt: any) => ({
+            ...alt,
+            items: alt.items ? fixItemUrls(alt.items, searchResults) : alt.items,
+          }));
+        }
+      }
+
+      const responsePayload: any = {
+        type: "tool_call",
+        tool: toolName,
+        data: toolArgs,
+        text: choice.message.content || "",
+      };
+
+      // Include search candidates for build_cart so frontend can show all results
+      if (toolName === "build_cart" && Object.keys(searchCandidates).length > 0) {
+        responsePayload.searchCandidates = searchCandidates;
+      }
+
       return new Response(
-        JSON.stringify({
-          type: "tool_call",
-          tool: toolName,
-          data: toolArgs,
-          text: choice.message.content || "",
-        }),
+        JSON.stringify(responsePayload),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
