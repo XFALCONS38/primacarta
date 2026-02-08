@@ -50,7 +50,10 @@ export function ClarificationForm({ request, onSubmit, disabled }: Clarification
 
   const allRequiredFilled = request.fields
     .filter((f) => f.required)
-    .every((f) => values[f.id]?.trim());
+    .every((f) => {
+      const v = values[f.id];
+      return typeof v === "string" ? v.trim() !== "" : !!v;
+    });
 
   return (
     <motion.div
