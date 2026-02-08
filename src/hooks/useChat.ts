@@ -6,6 +6,7 @@ import type {
   CartRecommendation,
 } from "@/types/chat";
 import type { WorkflowStage } from "@/config/agentStages";
+import { supabase } from "@/integrations/supabase/client";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-shopping-agent`;
 
@@ -30,11 +31,16 @@ export function useChat() {
     targetStage: WorkflowStage,
     signal?: AbortSignal
   ) => {
+    // Get the current user's JWT for authenticated requests
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({ messages: allMessages, stage: targetStage }),
       signal,

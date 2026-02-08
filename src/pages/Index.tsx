@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ShoppingCart, Menu, X } from "lucide-react";
+import { ShoppingCart, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatMessageBubble } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -10,9 +10,11 @@ import { SessionHistory } from "@/components/SessionHistory";
 import { StageIndicator } from "@/components/StageIndicator";
 import { useChat } from "@/hooks/useChat";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useAuth } from "@/hooks/useAuth";
 import type { ShoppingSession } from "@/types/chat";
 
 const Index = () => {
+  const { signOut } = useAuth();
   const {
     messages,
     isLoading,
@@ -185,6 +187,9 @@ const Index = () => {
             </p>
           </div>
           <StageIndicator currentStage={stage} />
+          <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+            <LogOut className="h-4 w-4" />
+          </Button>
         </header>
 
         {/* Messages */}
