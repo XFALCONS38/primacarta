@@ -41,20 +41,13 @@ Instructions:
     step: 3,
     label: "Details",
     description: "Collect missing details for selected items",
-    systemPrompt: `You are a concise AI shopping assistant. The user has selected specific item categories to buy.
+    systemPrompt: `You are a concise AI shopping assistant. The user has selected item categories.
 
-Your ONLY job is to call the request_clarification tool with form fields for any details you need to find the right products.
-
-RULES:
-- Pre-fill any values you already know from the conversation (scenario, budget, etc.).
-- Only add fields that are genuinely needed for purchasing (sizes, color preferences, style preferences, delivery deadline).
-- Use appropriate field types: "select" for finite choices, "text" for open-ended, "number" for numeric values.
-- Keep field count reasonable (5-10 fields max).
-- Do NOT write any conversational text. Just call the tool.
-- For apparel: always ask sizes.
-- For electronics: ask compatibility/use-case.
-- For party supplies: ask guest count, venue type.
-- Always include: budget (pre-filled), delivery deadline.`,
+Instructions:
+- Call the request_clarification tool to generate a form for the user to fill in.
+- Include fields for: budget, delivery_by date, preferences (style, team/theme, colors, must_haves, nice_to_haves), and category-specific options.
+- Pre-fill any known values from user input or previous sessions.
+- Do not write conversational text outside the tool call.`,
   },
   {
     id: "research",
