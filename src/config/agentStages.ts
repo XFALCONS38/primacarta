@@ -264,7 +264,7 @@ export const TOOL_DEFINITIONS = {
             items: {
               type: "object",
               properties: {
-                retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                retailer: { type: "string", description: "The retailer/store name" },
                 items: { type: "array", items: { type: "string" }, description: "Item names in this order" },
                 subtotal: { type: "number" },
                 estimated_delivery_days: { type: "number" },
