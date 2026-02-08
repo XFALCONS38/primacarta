@@ -87,8 +87,8 @@ const Index = () => {
               AI Shopping Agent
             </h1>
             <p className="mx-auto max-w-md text-lg text-muted-foreground">
-              Tell me what you need, and I'll find the best deals across Amazon,
-              Walmart, and Target — all in one cart.
+              Tell me what you need, and I'll search across the entire internet
+              to find the best deals — all in one cart.
             </p>
           </div>
 
