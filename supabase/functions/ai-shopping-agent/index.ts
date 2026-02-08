@@ -732,6 +732,7 @@ serve(async (req) => {
     );
   }
 
+  try {
     // --- JWT Authentication ---
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
