@@ -92,89 +92,65 @@ const CATALOG_JSON = JSON.stringify(PRODUCT_CATALOG);
 
 // Stage-specific system prompts
 const STAGE_PROMPTS: Record<string, string> = {
-  identify: `You are a concise AI shopping assistant. The user will describe a shopping need.
+  identify: `You are a concise AI shopping assistant. The user will describe their shopping need in one message.
 
-Your ONLY job is to:
-1. Acknowledge what they need in ONE short sentence (e.g., "Got it — Patriots tailgate, $200 budget.")
-2. Call the suggest_items tool with 8-12 relevant item categories for their occasion.
+Instructions:
+- Respond in 1-2 sentences maximum acknowledging their request.
+- Suggest 8-12 item categories for their scenario (e.g., "Jersey", "Cap", "Cooler").
+- Do NOT list actual products.
+- Return your tool call using the suggest_items tool with JSON: { "brief_response": "...", "items": [{ "id": "...", "label": "...", "emoji": "..." }...] }
+- Always keep it short, clear, and friendly.`,
 
-RULES:
-- Never write more than 1-2 sentences of text.
-- Do NOT do any product research yet.
-- The items you suggest are CATEGORIES (e.g., "Jersey", "Cap", "Cooler"), not specific products.
-- Include an emoji for each category.
-- Think broadly about what someone would need for this occasion.`,
+  clarify: `You are a concise AI shopping assistant. The user has selected item categories.
 
-  clarify: `You are a concise AI shopping assistant. The user has selected specific item categories to buy.
+Instructions:
+- Call the request_clarification tool to generate a form for the user to fill in.
+- Include fields for: budget, delivery_by date, preferences (style, team/theme, colors, must_haves, nice_to_haves), and category-specific options.
+- Pre-fill any known values from user input or previous sessions.
+- Return only the tool call JSON: { "title": "...", "fields": [{ "id": "...", "label": "...", "type": "...", "value": "...", "options": [...], "required": true/false }] }
+- Do not write conversational text outside the tool call.`,
 
-Your ONLY job is to call the request_clarification tool with form fields for any details you need to find the right products.
+  research: `You are a concise AI shopping assistant with access to a mock product catalog. Use the following catalog exactly as provided (names, prices, variants, retailers, delivery_days). Pick items ONLY from this catalog.
 
-RULES:
-- Pre-fill any values you already know from the conversation (scenario, budget, etc.).
-- Only add fields that are genuinely needed for purchasing (sizes, color preferences, style preferences, delivery deadline).
-- Use appropriate field types: "select" for finite choices, "text" for open-ended, "number" for numeric values.
-- Keep field count reasonable (5-10 fields max).
-- Do NOT write any conversational text. Just call the tool.
-- For apparel: always ask sizes.
-- For electronics: ask compatibility/use-case.
-- For party supplies: ask guest count, venue type.
-- Always include: budget (pre-filled), delivery deadline.`,
-
-  research: `You are a concise AI shopping assistant. You have the user's selected items and their specifications.
-
-You MUST pick items ONLY from this product catalog. Use exact names, prices, and retailers from the catalog.
-
-PRODUCT CATALOG:
+Catalog:
 ${CATALOG_JSON}
 
-RULES:
-- Call the build_cart tool with your recommended items.
-- You MUST only use products from the catalog above. Use exact product names and prices.
-- Pick items from MULTIPLE retailers (at least 2-3).
-- Stay within the stated budget.
-- Match sizes, colors, and preferences the user specified.
-- Score each complete set using this formula:
-  0.4 * (1 - cost/budget) + 0.3 * delivery_score + 0.2 * preference_match + 0.1 * style_coherence
-  - delivery_score: 1.0 if all items arrive by deadline, scales down linearly
-  - preference_match: how well items match stated colors, sizes, team, style
-  - style_coherence: how well items look together as a set
-- ALWAYS include a ranking_explanation describing why this set scored highest.
-- ALWAYS include 1-2 alternative_sets with different trade-offs (e.g., cheaper but slower, or better brand match).
-- Set replace: true for every item so the user can swap them.
-- Do NOT write long explanations. One sentence summary max.
-- Include 1-2 items per selected category.`,
+Instructions:
+1. Build a combined cart selecting items from 2-3 different retailers.
+2. Ensure the total cost does not exceed the user's budget.
+3. Score each complete set using:
+   score = 0.4*(1 - total_cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence
+   - delivery_score: 1.0 if all items arrive by delivery_by, scales down linearly
+   - preference_match: how well items match colors, team/theme, style
+   - style_coherence: how well items look together
+4. Generate:
+   - top_ranked_set: best set of items
+   - alternative_sets: 1-2 alternative sets with explanations
+   - ranking_explanation: why the top set was chosen
+5. Add "replace": true to each item.
+6. Return structured JSON ONLY using the build_cart tool.
+7. Do NOT hallucinate items; use catalog only.`,
 
   review: `You are a concise AI shopping assistant. The user is reviewing their cart.
 
-IMPORTANT: Do NOT rebuild the cart unless the user explicitly asks to change, replace, or remove specific items.
-If the user says the cart looks good, wants to proceed, or asks general questions — just respond with a short text reply. Do NOT call build_cart.
+Instructions:
+- Do NOT rebuild the cart unless the user requests an item replacement, removal, or addition.
+- If the user says the cart looks good or wants to proceed, just respond with a short text reply. Do NOT call build_cart.
+- If the user asks to replace an item, suggest alternatives from the catalog.
+- Return updated combined_cart JSON using the build_cart tool with the same structure as before.
+- Keep responses short and friendly.
 
-You have access to the product catalog for suggesting replacements:
-${CATALOG_JSON}
+Product catalog for replacements:
+${CATALOG_JSON}`,
 
-Only call build_cart when the user specifically asks to:
-- Replace a specific item with an alternative
-- Remove an item
-- Add a new item
-- Change quantities
+  checkout: `You are a concise AI shopping assistant generating a structured checkout simulation.
 
-RULES:
-- Keep responses to 1-2 sentences max.
-- When replacing items, pick alternatives from the catalog above.
-- Always stay within budget.
-- Set replace: true on replaceable items.
-- Include ranking_explanation when rebuilding the cart.`,
-
-  checkout: `You are a concise AI shopping assistant. The user has confirmed their cart and is checking out.
-
-Call the generate_checkout tool with a structured checkout simulation.
-
-RULES:
+Instructions:
 - Group items by retailer.
-- Each retailer gets 4-6 checkout steps (e.g., "Add items to cart", "Apply best available coupon", "Enter shipping address", "Select payment method", "Review order summary", "Confirm purchase — $XX.XX").
-- Include the item names, subtotal, and estimated delivery days per retailer.
-- Include the grand total across all retailers.
-- Make the steps feel realistic and specific to each retailer.`,
+- Include step-by-step checkout instructions per retailer: Name → Address → Payment → Confirm.
+- Include grand_total and retailer-level subtotals.
+- Return structured JSON ONLY using the generate_checkout tool.
+- Do NOT stream free text. Use the structured tool output.`,
 };
 
 // Tool definitions

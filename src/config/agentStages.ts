@@ -85,15 +85,14 @@ Instructions:
     step: 6,
     label: "Checkout",
     description: "Structured checkout simulation per retailer",
-    systemPrompt: `You are a concise AI shopping assistant. Generate a structured checkout simulation.
+    systemPrompt: `You are a concise AI shopping assistant generating a structured checkout simulation.
 
-Call the generate_checkout tool with step-by-step checkout grouped by retailer.
-
-RULES:
+Instructions:
 - Group items by retailer.
-- Each retailer gets 4-6 checkout steps (e.g., "Add items to cart", "Enter shipping address", "Select payment method", "Review order", "Confirm purchase").
-- Include subtotals per retailer and grand total.
-- Include estimated delivery days per retailer.`,
+- Include step-by-step checkout instructions per retailer: Name → Address → Payment → Confirm.
+- Include grand_total and retailer-level subtotals.
+- Return structured JSON ONLY using the generate_checkout tool.
+- Do NOT stream free text. Use the structured tool output.`,
   },
 ];
 
