@@ -10,28 +10,58 @@ import {
   Package,
   BarChart3,
   Info,
+  ArrowUpDown,
+  Search,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import type { CartRecommendationItem, AlternativeSet } from "@/types/chat";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { CartRecommendationItem, AlternativeSet, SearchCandidate } from "@/types/chat";
 import { cn } from "@/lib/utils";
+
+type SortOption = "score" | "price_asc" | "price_desc" | "rating" | "delivery" | "reviews";
 
 interface CartItemExplorerProps {
   mainItems: CartRecommendationItem[];
   alternativeSets?: AlternativeSet[];
+  searchCandidates?: Record<string, SearchCandidate[]>;
 }
 
-// Gather ALL items (main + alternatives) and group by category
+interface ExplorerEntry {
+  item: CartRecommendationItem;
+  source: string;
+  rank: number;
+  isCandidate?: boolean;
+}
+
+// Gather ALL items (main + alternatives + search candidates) and group by category
 function gatherAllItems(
   mainItems: CartRecommendationItem[],
-  alternativeSets?: AlternativeSet[]
-): Record<string, { item: CartRecommendationItem; source: string; rank: number }[]> {
-  const grouped: Record<string, { item: CartRecommendationItem; source: string; rank: number }[]> = {};
+  alternativeSets?: AlternativeSet[],
+  searchCandidates?: Record<string, SearchCandidate[]>
+): Record<string, ExplorerEntry[]> {
+  const grouped: Record<string, ExplorerEntry[]> = {};
+  // Track URLs to deduplicate
+  const seenUrls = new Set<string>();
+  const seenNames = new Set<string>();
 
-  const addItem = (item: CartRecommendationItem, source: string) => {
+  const addItem = (item: CartRecommendationItem, source: string, isCandidate = false) => {
     const category = item.category || "Other";
     if (!grouped[category]) grouped[category] = [];
-    grouped[category].push({ item, source, rank: 0 });
+
+    // Deduplicate by URL or name
+    const key = item.url || item.name;
+    if (seenUrls.has(key) || seenNames.has(item.name.toLowerCase())) return;
+    if (item.url) seenUrls.add(item.url);
+    seenNames.add(item.name.toLowerCase());
+
+    grouped[category].push({ item, source, rank: 0, isCandidate });
   };
 
   // Main cart items first
@@ -42,13 +72,28 @@ function gatherAllItems(
     alt.items.forEach((item) => addItem(item, alt.set_name));
   });
 
-  // Rank within each category by a composite score
+  // Raw search candidates (from Firecrawl)
+  if (searchCandidates) {
+    for (const [category, candidates] of Object.entries(searchCandidates)) {
+      for (const candidate of candidates) {
+        // Convert SearchCandidate to CartRecommendationItem-like structure
+        const asItem: CartRecommendationItem = {
+          name: candidate.name,
+          category: category,
+          retailer: candidate.retailer,
+          price: candidate.price ?? 0,
+          delivery_days: 5, // Default estimate for candidates
+          emoji: "📦",
+          url: candidate.url,
+        };
+        addItem(asItem, "Search Result", true);
+      }
+    }
+  }
+
+  // Rank within each category by composite score
   Object.values(grouped).forEach((entries) => {
-    entries.sort((a, b) => {
-      const scoreA = computeScore(a.item);
-      const scoreB = computeScore(b.item);
-      return scoreB - scoreA;
-    });
+    entries.sort((a, b) => computeScore(b.item) - computeScore(a.item));
     entries.forEach((entry, i) => {
       entry.rank = i + 1;
     });
@@ -59,19 +104,42 @@ function gatherAllItems(
 
 function computeScore(item: CartRecommendationItem): number {
   let score = 0;
-  // Rating contribution (0-5 scaled to 0-30)
   if (item.rating) score += item.rating * 6;
-  // Review volume (log scale, max ~15)
   if (item.review_count) score += Math.min(Math.log10(item.review_count + 1) * 5, 15);
-  // Price advantage (lower = better, normalize against a baseline of $100)
   score += Math.max(0, (100 - item.price) / 5);
-  // Delivery speed bonus (faster = better)
   score += Math.max(0, (7 - item.delivery_days) * 2);
-  // Free shipping bonus
   if (item.shipping_cost === 0) score += 5;
-  // Discount bonus
   if (item.discount_label) score += 5;
   return score;
+}
+
+function sortEntries(entries: ExplorerEntry[], sortBy: SortOption): ExplorerEntry[] {
+  const sorted = [...entries];
+  switch (sortBy) {
+    case "score":
+      sorted.sort((a, b) => computeScore(b.item) - computeScore(a.item));
+      break;
+    case "price_asc":
+      sorted.sort((a, b) => a.item.price - b.item.price);
+      break;
+    case "price_desc":
+      sorted.sort((a, b) => b.item.price - a.item.price);
+      break;
+    case "rating":
+      sorted.sort((a, b) => (b.item.rating || 0) - (a.item.rating || 0));
+      break;
+    case "delivery":
+      sorted.sort((a, b) => a.item.delivery_days - b.item.delivery_days);
+      break;
+    case "reviews":
+      sorted.sort((a, b) => (b.item.review_count || 0) - (a.item.review_count || 0));
+      break;
+  }
+  // Re-rank after sorting
+  sorted.forEach((entry, i) => {
+    entry.rank = i + 1;
+  });
+  return sorted;
 }
 
 const RETAILER_PALETTE = [
@@ -95,10 +163,12 @@ function ItemDetailCard({
   item,
   source,
   rank,
+  isCandidate,
 }: {
   item: CartRecommendationItem;
   source: string;
   rank: number;
+  isCandidate?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -140,10 +210,18 @@ function ItemDetailCard({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-sm font-semibold text-foreground">${item.price.toFixed(2)}</span>
+          {item.price > 0 && (
+            <span className="text-sm font-semibold text-foreground">${item.price.toFixed(2)}</span>
+          )}
           {source === "Selected" && (
             <Badge variant="default" className="text-[10px] px-1.5 py-0 h-5">
               In Cart
+            </Badge>
+          )}
+          {isCandidate && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-primary/30 text-primary">
+              <Search className="h-2.5 w-2.5 mr-0.5" />
+              Found
             </Badge>
           )}
           <ChevronDown
@@ -167,7 +245,9 @@ function ItemDetailCard({
             <div className="border-t border-border px-3 py-3 space-y-2.5 bg-muted/20">
               {/* Details grid */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                <DetailRow icon={<DollarSign className="h-3.5 w-3.5" />} label="Price" value={`$${item.price.toFixed(2)}`} />
+                {item.price > 0 && (
+                  <DetailRow icon={<DollarSign className="h-3.5 w-3.5" />} label="Price" value={`$${item.price.toFixed(2)}`} />
+                )}
                 {item.original_price && item.original_price > item.price && (
                   <DetailRow
                     icon={<Tag className="h-3.5 w-3.5" />}
@@ -296,15 +376,30 @@ function DetailRow({
   );
 }
 
-export function CartItemExplorer({ mainItems, alternativeSets }: CartItemExplorerProps) {
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "score", label: "Score" },
+  { value: "price_asc", label: "Price: Low → High" },
+  { value: "price_desc", label: "Price: High → Low" },
+  { value: "rating", label: "Rating: Best First" },
+  { value: "delivery", label: "Delivery: Fastest" },
+  { value: "reviews", label: "Reviews: Most" },
+];
+
+export function CartItemExplorer({ mainItems, alternativeSets, searchCandidates }: CartItemExplorerProps) {
   const grouped = useMemo(
-    () => gatherAllItems(mainItems, alternativeSets),
-    [mainItems, alternativeSets]
+    () => gatherAllItems(mainItems, alternativeSets, searchCandidates),
+    [mainItems, alternativeSets, searchCandidates]
   );
 
   const categories = Object.keys(grouped);
+  const [sortPerCategory, setSortPerCategory] = useState<Record<string, SortOption>>({});
 
   if (categories.length === 0) return null;
+
+  const getSort = (cat: string) => sortPerCategory[cat] || "score";
+  const setSort = (cat: string, sort: SortOption) => {
+    setSortPerCategory((prev) => ({ ...prev, [cat]: sort }));
+  };
 
   return (
     <motion.div
@@ -319,7 +414,7 @@ export function CartItemExplorer({ mainItems, alternativeSets }: CartItemExplore
         </h4>
       </div>
       <p className="text-xs text-muted-foreground">
-        Every product discovered, ranked by composite score. Click to expand details.
+        Every product discovered across retailers, ranked by composite score. Click to expand details.
       </p>
 
       <Tabs defaultValue={categories[0]} className="w-full">
@@ -338,18 +433,45 @@ export function CartItemExplorer({ mainItems, alternativeSets }: CartItemExplore
           ))}
         </TabsList>
 
-        {categories.map((cat) => (
-          <TabsContent key={cat} value={cat} className="mt-3 space-y-2">
-            {grouped[cat].map((entry, i) => (
-              <ItemDetailCard
-                key={`${entry.item.name}-${entry.source}-${i}`}
-                item={entry.item}
-                source={entry.source}
-                rank={entry.rank}
-              />
-            ))}
-          </TabsContent>
-        ))}
+        {categories.map((cat) => {
+          const sortedEntries = sortEntries(grouped[cat], getSort(cat));
+          return (
+            <TabsContent key={cat} value={cat} className="mt-3 space-y-2">
+              {/* Sort control */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <Select
+                  value={getSort(cat)}
+                  onValueChange={(val) => setSort(cat, val as SortOption)}
+                >
+                  <SelectTrigger className="h-7 w-auto min-w-[160px] text-xs bg-background border-border">
+                    <SelectValue placeholder="Sort by..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {SORT_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-[10px] text-muted-foreground ml-auto">
+                  {sortedEntries.length} item{sortedEntries.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+
+              {sortedEntries.map((entry, i) => (
+                <ItemDetailCard
+                  key={`${entry.item.name}-${entry.source}-${i}`}
+                  item={entry.item}
+                  source={entry.source}
+                  rank={entry.rank}
+                  isCandidate={entry.isCandidate}
+                />
+              ))}
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </motion.div>
   );

@@ -390,6 +390,7 @@ export function CartRecommendationCard({
       <CartItemExplorer
         mainItems={cart.items}
         alternativeSets={cart.alternativeSets}
+        searchCandidates={cart.searchCandidates}
       />
 
       {/* Optimizer buttons + Checkout */}

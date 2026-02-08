@@ -9,6 +9,7 @@ import type {
   AlternativeSet,
   CheckoutInfo,
   ShoppingSpec,
+  SearchCandidate,
 } from "@/types/chat";
 import type { WorkflowStage } from "@/config/agentStages";
 
@@ -105,7 +106,7 @@ export function useChat() {
 
   /** Handle tool call responses from the edge function */
   const handleToolCallResponse = (
-    data: { type: string; tool: string; data: any; text?: string },
+    data: { type: string; tool: string; data: any; text?: string; searchCandidates?: Record<string, SearchCandidate[]> },
     currentStage: WorkflowStage
   ) => {
     if (data.type === "tool_call") {
@@ -201,6 +202,7 @@ export function useChat() {
                   ranking_explanation: alt.ranking_explanation || "",
                 }))
               : undefined,
+            searchCandidates: data.searchCandidates || undefined,
           };
           lastCartRef.current = cart;
           const assistantMsg: ChatMessage = {
