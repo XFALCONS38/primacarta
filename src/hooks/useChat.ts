@@ -6,6 +6,7 @@ import type {
   CartRecommendation,
 } from "@/types/chat";
 import type { WorkflowStage } from "@/config/agentStages";
+import { supabase } from "@/integrations/supabase/client";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-shopping-agent`;
 
