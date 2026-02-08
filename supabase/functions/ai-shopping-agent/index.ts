@@ -865,16 +865,37 @@ serve(async (req) => {
 
       console.log(`Tool call: ${toolName}`, JSON.stringify(toolArgs).slice(0, 300));
 
-      // Post-process build_cart: fix URLs using real search results
-      if (toolName === "build_cart" && searchResults.length > 0) {
-        console.log("Post-processing URLs for build_cart...");
+      // Post-process build_cart: fix URLs and filter $0 prices
+      if (toolName === "build_cart") {
+        if (searchResults.length > 0) {
+          console.log("Post-processing URLs for build_cart...");
+          if (toolArgs.items) {
+            toolArgs.items = fixItemUrls(toolArgs.items, searchResults);
+          }
+          if (toolArgs.alternative_sets) {
+            toolArgs.alternative_sets = toolArgs.alternative_sets.map((alt: any) => ({
+              ...alt,
+              items: alt.items ? fixItemUrls(alt.items, searchResults) : alt.items,
+            }));
+          }
+        }
+
+        // Fix $0 prices: try to recover from search candidates, otherwise remove
         if (toolArgs.items) {
-          toolArgs.items = fixItemUrls(toolArgs.items, searchResults);
+          toolArgs.items = fixZeroPrices(toolArgs.items, searchCandidates);
+          // Filter out any items that still have price 0 or negative
+          const before = toolArgs.items.length;
+          toolArgs.items = toolArgs.items.filter((item: any) => item.price > 0);
+          if (toolArgs.items.length < before) {
+            console.log(`Filtered out ${before - toolArgs.items.length} items with $0 price`);
+          }
+          // Recalculate total
+          toolArgs.total_cost = toolArgs.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0);
         }
         if (toolArgs.alternative_sets) {
           toolArgs.alternative_sets = toolArgs.alternative_sets.map((alt: any) => ({
             ...alt,
-            items: alt.items ? fixItemUrls(alt.items, searchResults) : alt.items,
+            items: alt.items ? fixZeroPrices(alt.items, searchCandidates).filter((item: any) => item.price > 0) : [],
           }));
         }
       }
