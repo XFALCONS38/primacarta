@@ -6,11 +6,14 @@ import type {
   ChecklistItem,
   AlternativeSet,
   CartRecommendationItem,
+  CheckoutInfo,
 } from "@/types/chat";
 import { ItemChecklist } from "@/components/ItemChecklist";
 import { ClarificationForm } from "@/components/ClarificationForm";
 import { CartRecommendationCard } from "@/components/CartRecommendation";
 import { CheckoutSimulation } from "@/components/CheckoutSimulation";
+import { ShoppingSpecCard } from "@/components/ShoppingSpec";
+import { CheckoutForm } from "@/components/CheckoutForm";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
@@ -21,6 +24,9 @@ interface ChatMessageProps {
   onReplaceItem?: (itemName: string) => void;
   onSelectAlternativeSet?: (alt: AlternativeSet) => void;
   onSwapItem?: (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => void;
+  onCheckoutFormSubmit?: (info: CheckoutInfo) => void;
+  onOptimizeBudget?: () => void;
+  onOptimizeDelivery?: () => void;
   isLatest?: boolean;
 }
 
@@ -32,6 +38,9 @@ export function ChatMessageBubble({
   onReplaceItem,
   onSelectAlternativeSet,
   onSwapItem,
+  onCheckoutFormSubmit,
+  onOptimizeBudget,
+  onOptimizeDelivery,
   isLatest,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
@@ -73,6 +82,11 @@ export function ChatMessageBubble({
           </div>
         )}
 
+        {/* Shopping spec */}
+        {message.shoppingSpec && (
+          <ShoppingSpecCard spec={message.shoppingSpec} />
+        )}
+
         {/* Checklist UI */}
         {message.checklist && message.checklist.length > 0 && (
           <ItemChecklist
@@ -99,8 +113,15 @@ export function ChatMessageBubble({
             onReplaceItem={onReplaceItem}
             onSelectAlternativeSet={onSelectAlternativeSet}
             onSwapItem={onSwapItem}
+            onOptimizeBudget={onOptimizeBudget}
+            onOptimizeDelivery={onOptimizeDelivery}
             isLatest={isLatest}
           />
+        )}
+
+        {/* Checkout form (enter once) */}
+        {message.checkoutInfo === null && isLatest && onCheckoutFormSubmit && (
+          <CheckoutForm onSubmit={onCheckoutFormSubmit} />
         )}
 
         {/* Checkout simulation UI */}
@@ -108,6 +129,7 @@ export function ChatMessageBubble({
           <CheckoutSimulation
             checkoutSteps={message.checkoutSteps}
             grandTotal={message.checkoutGrandTotal || 0}
+            checkoutInfo={message.checkoutInfo || undefined}
           />
         )}
       </div>

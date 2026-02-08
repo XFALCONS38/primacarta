@@ -12,6 +12,9 @@ import {
   Tag,
   CheckCircle2,
   ArrowRight,
+  DollarSign,
+  Clock,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +22,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type {
   CartRecommendation as CartRecommendationType,
   AlternativeSet,
@@ -32,6 +40,8 @@ interface CartRecommendationProps {
   onReplaceItem?: (itemName: string) => void;
   onSelectAlternativeSet?: (alt: AlternativeSet) => void;
   onSwapItem?: (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => void;
+  onOptimizeBudget?: () => void;
+  onOptimizeDelivery?: () => void;
   isLatest?: boolean;
 }
 
@@ -103,6 +113,18 @@ function CartItemRow({
             </a>
           ) : (
             <p className="truncate font-medium text-foreground">{item.name}</p>
+          )}
+          {item.reason && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="shrink-0 text-muted-foreground hover:text-primary">
+                  <Info className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[250px] text-xs">
+                {item.reason}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
@@ -228,6 +250,8 @@ export function CartRecommendationCard({
   onReplaceItem,
   onSelectAlternativeSet,
   onSwapItem,
+  onOptimizeBudget,
+  onOptimizeDelivery,
   isLatest,
 }: CartRecommendationProps) {
   const remaining = cart.budget - cart.totalCost;
@@ -361,16 +385,44 @@ export function CartRecommendationCard({
         </Collapsible>
       )}
 
-      {/* Checkout button */}
-      {isLatest && onCheckout && (
-        <Button
-          onClick={onCheckout}
-          className="w-full rounded-xl font-medium"
-          size="sm"
-        >
-          <CreditCard className="mr-2 h-4 w-4" />
-          Confirm & Checkout
-        </Button>
+      {/* Optimizer buttons + Checkout */}
+      {isLatest && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            {onOptimizeBudget && (
+              <Button
+                onClick={onOptimizeBudget}
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs h-8"
+              >
+                <DollarSign className="mr-1 h-3 w-3" />
+                Optimize Budget
+              </Button>
+            )}
+            {onOptimizeDelivery && (
+              <Button
+                onClick={onOptimizeDelivery}
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs h-8"
+              >
+                <Clock className="mr-1 h-3 w-3" />
+                Optimize Delivery
+              </Button>
+            )}
+          </div>
+          {onCheckout && (
+            <Button
+              onClick={onCheckout}
+              className="w-full rounded-xl font-medium"
+              size="sm"
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              Confirm & Checkout
+            </Button>
+          )}
+        </div>
       )}
     </motion.div>
   );

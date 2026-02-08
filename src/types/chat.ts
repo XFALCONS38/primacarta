@@ -12,6 +12,8 @@ export interface ChatMessage {
   stage?: WorkflowStage;
   checkoutSteps?: CheckoutStep[];
   checkoutGrandTotal?: number;
+  shoppingSpec?: ShoppingSpec;
+  checkoutInfo?: CheckoutInfo;
 }
 
 // Item checklist for stage 1 → 2
@@ -51,6 +53,27 @@ export interface UserSpec {
   };
 }
 
+// Structured shopping spec (displayed to user)
+export interface ShoppingSpec {
+  scenario: string;
+  budget: number;
+  delivery_by?: string;
+  location?: string;
+  items: string[];
+  preferences: Record<string, string>;
+}
+
+// Checkout info collected once
+export interface CheckoutInfo {
+  fullName: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  cardLast4: string;
+}
+
 // Cart data for stage 4-5
 export interface CartRecommendationItem {
   name: string;
@@ -67,6 +90,7 @@ export interface CartRecommendationItem {
   shipping_cost?: number;
   original_price?: number;
   discount_label?: string;
+  reason?: string;
 }
 
 export interface AlternativeSet {
