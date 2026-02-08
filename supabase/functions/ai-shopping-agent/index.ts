@@ -597,15 +597,16 @@ serve(async (req) => {
       }
     }
 
-    // ─── REVIEW STAGE: Check if replacement needed → search ───
+    // ─── REVIEW STAGE: Check if replacement/swap/set selection needed → search ───
     if (stage === "review" && FIRECRAWL_API_KEY) {
       const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
-      const isReplacement = lastUserMsg?.content && /replace|swap|switch|alternative|instead|different/i.test(lastUserMsg.content);
+      const isReplacement = lastUserMsg?.content && /replace|swap|switch|alternative|instead|different|use.*set/i.test(lastUserMsg.content);
 
       if (isReplacement) {
         // Extract what category to search for
         const replaceMatch = lastUserMsg.content.match(/replace\s+"?([^"]+)"?\s+with/i) ||
-          lastUserMsg.content.match(/replace\s+"?([^"]+)"?/i);
+          lastUserMsg.content.match(/replace\s+"?([^"]+)"?/i) ||
+          lastUserMsg.content.match(/swap\s+"?([^"]+)"?\s+/i);
         const itemToReplace = replaceMatch ? replaceMatch[1].trim() : "";
         const searchQuery = itemToReplace || "alternative product";
 
@@ -616,7 +617,8 @@ serve(async (req) => {
           searchQuery,
           ctx.location,
           ctx.preferredRetailers,
-          FIRECRAWL_API_KEY
+          FIRECRAWL_API_KEY,
+          ctx.buyerContext
         );
 
         if (searchResults.length > 0) {
