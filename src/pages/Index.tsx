@@ -21,6 +21,8 @@ const Index = () => {
     submitChecklist,
     submitClarification,
     confirmCheckout,
+    selectAlternativeSet,
+    swapAlternativeItem,
     cancelStream,
     clearMessages,
   } = useChat();
