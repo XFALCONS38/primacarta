@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -718,13 +719,35 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Rate limiting
-  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
-  
-  if (!checkRateLimit(clientIp)) {
-    console.warn(`Rate limit exceeded for IP: ${clientIp}`);
+  // ─── Authentication ───
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const userId = claimsData.claims.sub as string;
+
+  // Rate limiting (per user)
+  if (!checkRateLimit(userId)) {
+    console.warn(`Rate limit exceeded for user: ${userId}`);
     return new Response(
       JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
       { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
