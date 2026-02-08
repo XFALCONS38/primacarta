@@ -1,10 +1,13 @@
 import { motion } from "framer-motion";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { CartRecommendation as CartRecommendationType } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
 interface CartRecommendationProps {
   cart: CartRecommendationType;
+  onCheckout?: () => void;
+  isLatest?: boolean;
 }
 
 const retailerColors: Record<string, string> = {
@@ -13,7 +16,7 @@ const retailerColors: Record<string, string> = {
   Target: "bg-[hsl(var(--target))]",
 };
 
-export function CartRecommendationCard({ cart }: CartRecommendationProps) {
+export function CartRecommendationCard({ cart, onCheckout, isLatest }: CartRecommendationProps) {
   const remaining = cart.budget - cart.totalCost;
   const pct = Math.min((cart.totalCost / cart.budget) * 100, 100);
 
@@ -89,6 +92,18 @@ export function CartRecommendationCard({ cart }: CartRecommendationProps) {
           Budget: ${cart.budget.toFixed(2)}
         </p>
       </div>
+
+      {/* Checkout button - only on latest cart */}
+      {isLatest && onCheckout && (
+        <Button
+          onClick={onCheckout}
+          className="w-full rounded-xl font-medium"
+          size="sm"
+        >
+          <CreditCard className="mr-2 h-4 w-4" />
+          Confirm & Checkout
+        </Button>
+      )}
     </motion.div>
   );
 }

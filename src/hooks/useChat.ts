@@ -14,6 +14,7 @@ export function useChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [stage, setStage] = useState<WorkflowStage>("identify");
   const abortRef = useRef<AbortController | null>(null);
+  const lastCartRef = useRef<CartRecommendation | null>(null);
 
   // Context accumulated across stages
   const contextRef = useRef<{
@@ -22,6 +23,42 @@ export function useChat() {
     selectedItems?: ChecklistItem[];
     clarificationValues?: Record<string, string>;
   }>({});
+
+  /** Generic fetch + handle response */
+  const fetchAndHandle = async (
+    allMessages: { role: string; content: string }[],
+    targetStage: WorkflowStage,
+    signal?: AbortSignal
+  ) => {
+    const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ messages: allMessages, stage: targetStage }),
+      signal,
+    });
+
+    if (!resp.ok) {
+      const errMsg =
+        resp.status === 429
+          ? "⚠️ Rate limit exceeded. Please wait a moment."
+          : resp.status === 402
+            ? "⚠️ AI credits exhausted."
+            : "⚠️ Something went wrong.";
+      addAssistantMessage(errMsg);
+      return;
+    }
+
+    const contentType = resp.headers.get("Content-Type") || "";
+    if (contentType.includes("application/json")) {
+      const data = await resp.json();
+      handleToolCallResponse(data, targetStage);
+    } else {
+      await handleStreamResponse(resp);
+    }
+  };
 
   /** Send a text message and get AI response */
   const sendMessage = useCallback(
@@ -47,39 +84,7 @@ export function useChat() {
       try {
         const controller = new AbortController();
         abortRef.current = controller;
-
-        const resp = await fetch(CHAT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ messages: allMessages, stage: currentStage }),
-          signal: controller.signal,
-        });
-
-        if (!resp.ok) {
-          const errMsg =
-            resp.status === 429
-              ? "⚠️ Rate limit exceeded. Please wait a moment."
-              : resp.status === 402
-                ? "⚠️ AI credits exhausted."
-                : "⚠️ Something went wrong.";
-          addAssistantMessage(errMsg);
-          setIsLoading(false);
-          return;
-        }
-
-        const contentType = resp.headers.get("Content-Type") || "";
-
-        // Non-streaming JSON response (tool calls)
-        if (contentType.includes("application/json")) {
-          const data = await resp.json();
-          handleToolCallResponse(data, currentStage);
-        } else {
-          // Streaming text response
-          await handleStreamResponse(resp);
-        }
+        await fetchAndHandle(allMessages, currentStage, controller.signal);
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           console.error("Chat error:", err);
@@ -153,6 +158,7 @@ export function useChat() {
             totalCost: data.data.total_cost || 0,
             budget: data.data.budget || 0,
           };
+          lastCartRef.current = cart;
           const assistantMsg: ChatMessage = {
             id: crypto.randomUUID(),
             role: "assistant",
@@ -228,9 +234,7 @@ export function useChat() {
 
         try {
           const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as
-            | string
-            | undefined;
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) upsert(content);
         } catch {
           textBuffer = line + "\n" + textBuffer;
@@ -239,7 +243,6 @@ export function useChat() {
       }
     }
 
-    // Final flush
     if (textBuffer.trim()) {
       for (let raw of textBuffer.split("\n")) {
         if (!raw) continue;
@@ -250,13 +253,9 @@ export function useChat() {
         if (jsonStr === "[DONE]") continue;
         try {
           const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as
-            | string
-            | undefined;
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) upsert(content);
-        } catch {
-          /* ignore partial leftovers */
-        }
+        } catch { /* ignore */ }
       }
     }
   };
@@ -282,7 +281,6 @@ export function useChat() {
       const itemNames = selectedItems.map((i) => i.label).join(", ");
       const userMsg = `I want these items: ${itemNames}`;
 
-      // Add user message visually
       setMessages((prev) => [
         ...prev,
         {
@@ -303,28 +301,7 @@ export function useChat() {
           { role: "user" as const, content: userMsg },
         ].map((m) => ({ role: m.role, content: m.content }));
 
-        const resp = await fetch(CHAT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ messages: allMessages, stage: "clarify" }),
-        });
-
-        if (!resp.ok) {
-          addAssistantMessage("⚠️ Something went wrong. Please try again.");
-          setIsLoading(false);
-          return;
-        }
-
-        const contentType = resp.headers.get("Content-Type") || "";
-        if (contentType.includes("application/json")) {
-          const data = await resp.json();
-          handleToolCallResponse(data, "clarify");
-        } else {
-          await handleStreamResponse(resp);
-        }
+        await fetchAndHandle(allMessages, "clarify");
       } catch (err) {
         console.error("Checklist submit error:", err);
         addAssistantMessage("Sorry, something went wrong.");
@@ -366,28 +343,7 @@ export function useChat() {
           { role: "user" as const, content: userMsg },
         ].map((m) => ({ role: m.role, content: m.content }));
 
-        const resp = await fetch(CHAT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ messages: allMessages, stage: "research" }),
-        });
-
-        if (!resp.ok) {
-          addAssistantMessage("⚠️ Something went wrong. Please try again.");
-          setIsLoading(false);
-          return;
-        }
-
-        const contentType = resp.headers.get("Content-Type") || "";
-        if (contentType.includes("application/json")) {
-          const data = await resp.json();
-          handleToolCallResponse(data, "research");
-        } else {
-          await handleStreamResponse(resp);
-        }
+        await fetchAndHandle(allMessages, "research");
       } catch (err) {
         console.error("Clarification submit error:", err);
         addAssistantMessage("Sorry, something went wrong.");
@@ -398,6 +354,47 @@ export function useChat() {
     [messages]
   );
 
+  /** Confirm cart and proceed to checkout */
+  const confirmCheckout = useCallback(async () => {
+    const cart = lastCartRef.current;
+    if (!cart) return;
+
+    // Build a summary of the cart for the checkout prompt
+    const cartSummary = cart.items
+      .map((i) => `${i.emoji} ${i.name} (${i.retailer}) — $${i.price.toFixed(2)}`)
+      .join("\n");
+
+    const userMsg = `Proceed to checkout with this cart:\n${cartSummary}\nTotal: $${cart.totalCost.toFixed(2)}`;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: "Confirm & Checkout",
+        timestamp: new Date(),
+        stage: "review",
+      },
+    ]);
+
+    setStage("checkout");
+    setIsLoading(true);
+
+    try {
+      const allMessages = [
+        ...messages,
+        { role: "user" as const, content: userMsg },
+      ].map((m) => ({ role: m.role, content: m.content }));
+
+      await fetchAndHandle(allMessages, "checkout");
+    } catch (err) {
+      console.error("Checkout error:", err);
+      addAssistantMessage("Sorry, something went wrong during checkout.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [messages]);
+
   const cancelStream = useCallback(() => {
     abortRef.current?.abort();
   }, []);
@@ -405,6 +402,7 @@ export function useChat() {
   const clearMessages = useCallback(() => {
     setMessages([]);
     setStage("identify");
+    lastCartRef.current = null;
     contextRef.current = {};
   }, []);
 
@@ -415,6 +413,7 @@ export function useChat() {
     sendMessage,
     submitChecklist,
     submitClarification,
+    confirmCheckout,
     cancelStream,
     clearMessages,
   };

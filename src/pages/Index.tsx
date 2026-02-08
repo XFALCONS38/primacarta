@@ -214,6 +214,7 @@ const Index = () => {
                 message={msg}
                 onChecklistSubmit={submitChecklist}
                 onClarificationSubmit={submitClarification}
+                onCheckout={confirmCheckout}
                 isLatest={i === messages.length - 1}
               />
             ))}
