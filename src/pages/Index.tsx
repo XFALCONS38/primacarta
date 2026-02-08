@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { ShoppingSession } from "@/types/chat";
 
 const Index = () => {
+  const { signOut } = useAuth();
   const {
     messages,
     isLoading,
