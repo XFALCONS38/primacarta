@@ -168,6 +168,7 @@ function extractContextFromMessages(messages: { role: string; content: string }[
   budget: number;
   preferences: string;
   preferredRetailers: string[];
+  buyerContext: string;
 } {
   const fullText = messages.map((m) => m.content).join("\n");
 
@@ -189,16 +190,36 @@ function extractContextFromMessages(messages: { role: string; content: string }[
 
   // Extract preferred retailers
   const retailerMatch = fullText.match(
-    /(?:preferred retailers|retailers|preferred stores|stores)[:\s]*(.+?)(?:\.|,\s*(?:budget|location|style|colors|delivery)|$)/im
+    /(?:preferred retailers|retailers|preferred stores|stores|preferred_retailers)[:\s]*(.+?)(?:\.|,\s*(?:budget|location|style|colors|delivery)|$)/im
   );
   const preferredRetailers = retailerMatch
     ? retailerMatch[1].split(",").map((s) => s.trim()).filter(Boolean)
     : [];
 
+  // Extract buyer characteristics for search specificity
+  const buyerParts: string[] = [];
+
+  const sizeMatch = fullText.match(/(?:size)[:\s]*([A-Za-z0-9\s\/]+?)(?:,|$)/im);
+  if (sizeMatch) buyerParts.push(`size ${sizeMatch[1].trim()}`);
+
+  const colorMatch = fullText.match(/(?:colors?|preferred colors?)[:\s]*([A-Za-z\s,]+?)(?:\.|,\s*(?:budget|location|style|size|delivery)|$)/im);
+  if (colorMatch) buyerParts.push(colorMatch[1].trim());
+
+  const genderMatch = fullText.match(/(?:gender)[:\s]*(Male|Female|Unisex)/im);
+  if (genderMatch && genderMatch[1].toLowerCase() !== "prefer not to say") buyerParts.push(genderMatch[1].trim());
+
+  const ageMatch = fullText.match(/(?:age_group|age group|age)[:\s]*([A-Za-z0-9\s()-]+?)(?:,|$)/im);
+  if (ageMatch) buyerParts.push(ageMatch[1].trim());
+
+  const styleMatch = fullText.match(/(?:style)[:\s]*([A-Za-z\s,]+?)(?:,|$)/im);
+  if (styleMatch) buyerParts.push(styleMatch[1].trim());
+
+  const buyerContext = buyerParts.join(" ");
+
   // Everything else as preferences context
   const preferences = fullText;
 
-  return { categories, location, budget, preferences, preferredRetailers };
+  return { categories, location, budget, preferences, preferredRetailers, buyerContext };
 }
 
 // ─── STAGE PROMPTS ───
