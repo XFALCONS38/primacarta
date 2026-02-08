@@ -10,11 +10,9 @@ import { SessionHistory } from "@/components/SessionHistory";
 import { StageIndicator } from "@/components/StageIndicator";
 import { useChat } from "@/hooks/useChat";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { useAuth } from "@/hooks/useAuth";
 import type { ShoppingSession } from "@/types/chat";
 
 const Index = () => {
-  const { signOut } = useAuth();
   const {
     messages,
     isLoading,
