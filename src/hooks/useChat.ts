@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import type {
   ChatMessage,
   ChecklistItem,
@@ -38,13 +39,18 @@ export function useChat() {
     targetStage: WorkflowStage,
     signal?: AbortSignal
   ) => {
-    const token = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    // Get the user's actual session JWT for authenticated requests
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      throw new Error("Not authenticated. Please sign in.");
+    }
 
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${accessToken}`,
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({ messages: allMessages, stage: targetStage }),
