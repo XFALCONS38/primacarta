@@ -8,6 +8,7 @@ import type { CartRecommendationItem } from "@/types/chat";
 interface CartDashboardProps {
   items: CartRecommendationItem[];
   budget: number;
+  rankingExplanation?: string;
 }
 
 const RETAILER_COLORS: Record<string, string> = {
@@ -16,7 +17,7 @@ const RETAILER_COLORS: Record<string, string> = {
   Target: "hsl(0, 80%, 50%)",
 };
 
-export function CartDashboard({ items, budget }: CartDashboardProps) {
+export function CartDashboard({ items, budget, rankingExplanation }: CartDashboardProps) {
   const totalCost = items.reduce((sum, item) => sum + item.price, 0);
   const remaining = budget - totalCost;
 
@@ -40,6 +41,21 @@ export function CartDashboard({ items, budget }: CartDashboardProps) {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
+      {/* Ranking explanation */}
+      {rankingExplanation && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex items-start gap-3 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <span className="text-lg">💡</span>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">Why this set?</p>
+              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{rankingExplanation}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-3 gap-3">
         <Card className="border-border">
           <CardContent className="flex items-center gap-3 p-4">

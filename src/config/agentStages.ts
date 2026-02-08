@@ -64,17 +64,19 @@ RULES:
     id: "research",
     step: 4,
     label: "Research",
-    description: "Find best products for selected items",
-    systemPrompt: `You are a concise AI shopping assistant. You have the user's selected items and their specifications.
+    description: "Find best products with ranking and alternatives",
+    systemPrompt: `You are a concise AI shopping assistant with access to a real product catalog.
 
-Search the mock product catalog and find the best matching products across Amazon, Walmart, and Target.
+Search the catalog and find the best matching products. Score each set and provide a ranking explanation.
 
 RULES:
 - Call the build_cart tool with your recommended items.
 - Pick items from MULTIPLE retailers (at least 2-3).
 - Stay within the stated budget.
 - Match sizes, colors, and preferences the user specified.
-- Prioritize: budget fit > preference match > delivery speed.
+- Score each set: 0.4*(1-cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence.
+- ALWAYS include ranking_explanation and 1-2 alternative_sets.
+- Set replace: true for every item.
 - Do NOT write long explanations. One sentence summary max.
 - Include 1-2 items per selected category.`,
   },
@@ -82,32 +84,37 @@ RULES:
     id: "review",
     step: 5,
     label: "Review Cart",
-    description: "Review and adjust the cart",
+    description: "Review and adjust the cart with replace support",
     systemPrompt: `You are a concise AI shopping assistant. The user is reviewing their cart.
 
-If they want to replace an item, suggest 2-3 alternatives from different retailers.
-If they want to adjust quantities or remove items, update the cart accordingly.
+IMPORTANT: Do NOT rebuild the cart unless the user explicitly asks to change, replace, or remove specific items.
+
+Only call build_cart when the user specifically asks to:
+- Replace a specific item with an alternative
+- Remove an item
+- Add a new item
+- Change quantities
 
 RULES:
 - Keep responses to 1-2 sentences max.
-- When suggesting alternatives, show name, price, retailer, and delivery time.
+- When replacing, suggest alternatives from the product catalog.
 - Always stay within budget.
-- Call build_cart with the updated cart when changes are made.`,
+- Set replace: true on replaceable items.`,
   },
   {
     id: "checkout",
     step: 6,
     label: "Checkout",
-    description: "Simulate checkout per retailer",
-    systemPrompt: `You are a concise AI shopping assistant. Generate a step-by-step checkout simulation.
+    description: "Structured checkout simulation per retailer",
+    systemPrompt: `You are a concise AI shopping assistant. Generate a structured checkout simulation.
 
-Group items by retailer and show the checkout flow for each.
+Call the generate_checkout tool with step-by-step checkout grouped by retailer.
 
 RULES:
-- Keep it brief and visual.
-- Show: retailer name, items, subtotal, estimated delivery.
-- Use a clear step format (Step 1, Step 2, etc.).
-- Include a total across all retailers at the end.`,
+- Group items by retailer.
+- Each retailer gets 4-6 checkout steps (e.g., "Add items to cart", "Enter shipping address", "Select payment method", "Review order", "Confirm purchase").
+- Include subtotals per retailer and grand total.
+- Include estimated delivery days per retailer.`,
   },
 ];
 
@@ -120,14 +127,14 @@ export const TOOL_DEFINITIONS = {
     function: {
       name: "suggest_items",
       description:
-        "Suggest a list of item categories the buyer might want for their occasion. These are categories, not specific products.",
+        "Suggest a list of item categories the buyer might want for their occasion.",
       parameters: {
         type: "object",
         properties: {
           brief_response: {
             type: "string",
             description:
-              "A 1-2 sentence acknowledgment of what the user wants (e.g., 'Got it — Patriots tailgate, $200 budget.')",
+              "A 1-2 sentence acknowledgment of what the user wants.",
           },
           items: {
             type: "array",
@@ -154,36 +161,22 @@ export const TOOL_DEFINITIONS = {
     function: {
       name: "request_clarification",
       description:
-        "Request additional details from the buyer by presenting a structured form. Pre-fill known values.",
+        "Request additional details from the buyer by presenting a structured form.",
       parameters: {
         type: "object",
         properties: {
-          title: {
-            type: "string",
-            description: "Short title for the form, e.g., 'A few more details'",
-          },
+          title: { type: "string", description: "Short title for the form" },
           fields: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                id: { type: "string", description: "Unique field ID" },
-                label: { type: "string", description: "Display label" },
-                type: {
-                  type: "string",
-                  enum: ["text", "number", "select", "multiselect"],
-                  description: "Input type",
-                },
-                value: {
-                  type: "string",
-                  description: "Pre-filled value if known, empty string if unknown",
-                },
-                options: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Options for select/multiselect fields",
-                },
-                required: { type: "boolean", description: "Whether this field is required" },
+                id: { type: "string" },
+                label: { type: "string" },
+                type: { type: "string", enum: ["text", "number", "select", "multiselect"] },
+                value: { type: "string", description: "Pre-filled value if known" },
+                options: { type: "array", items: { type: "string" } },
+                required: { type: "boolean" },
               },
               required: ["id", "label", "type", "required"],
               additionalProperties: false,
@@ -201,14 +194,11 @@ export const TOOL_DEFINITIONS = {
     function: {
       name: "build_cart",
       description:
-        "Build a shopping cart with recommended products from the catalog.",
+        "Build a shopping cart with recommended products from the catalog, including ranking and alternatives.",
       parameters: {
         type: "object",
         properties: {
-          summary: {
-            type: "string",
-            description: "One sentence summary of the cart recommendation",
-          },
+          summary: { type: "string", description: "One sentence summary of the cart recommendation" },
           items: {
             type: "array",
             items: {
@@ -221,6 +211,7 @@ export const TOOL_DEFINITIONS = {
                 delivery_days: { type: "number" },
                 emoji: { type: "string" },
                 variant: { type: "string", description: "Selected size/color/variant" },
+                replace: { type: "boolean", description: "Whether this item can be replaced" },
               },
               required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
               additionalProperties: false,
@@ -228,8 +219,78 @@ export const TOOL_DEFINITIONS = {
           },
           total_cost: { type: "number" },
           budget: { type: "number" },
+          ranking_explanation: {
+            type: "string",
+            description: "Plain-language explanation of why this set was ranked #1",
+          },
+          alternative_sets: {
+            type: "array",
+            description: "1-2 alternative item sets with their own rankings",
+            items: {
+              type: "object",
+              properties: {
+                set_name: { type: "string" },
+                items: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      category: { type: "string" },
+                      retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                      price: { type: "number" },
+                      delivery_days: { type: "number" },
+                      emoji: { type: "string" },
+                      variant: { type: "string" },
+                    },
+                    required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
+                  },
+                },
+                ranking_explanation: { type: "string" },
+              },
+              required: ["set_name", "items", "ranking_explanation"],
+              additionalProperties: false,
+            },
+          },
         },
         required: ["summary", "items", "total_cost", "budget"],
+        additionalProperties: false,
+      },
+    },
+  },
+
+  generate_checkout: {
+    type: "function" as const,
+    function: {
+      name: "generate_checkout",
+      description:
+        "Generate a structured checkout simulation grouped by retailer with step-by-step actions.",
+      parameters: {
+        type: "object",
+        properties: {
+          steps: {
+            type: "array",
+            description: "Checkout flow grouped by retailer",
+            items: {
+              type: "object",
+              properties: {
+                retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                items: { type: "array", items: { type: "string" }, description: "Item names in this order" },
+                subtotal: { type: "number" },
+                estimated_delivery_days: { type: "number" },
+                steps: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Step-by-step checkout actions",
+                },
+              },
+              required: ["retailer", "items", "subtotal", "steps"],
+              additionalProperties: false,
+            },
+          },
+          grand_total: { type: "number" },
+        },
+        required: ["steps", "grand_total"],
         additionalProperties: false,
       },
     },

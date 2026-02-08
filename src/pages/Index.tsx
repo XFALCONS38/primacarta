@@ -215,6 +215,9 @@ const Index = () => {
                 onChecklistSubmit={submitChecklist}
                 onClarificationSubmit={submitClarification}
                 onCheckout={confirmCheckout}
+                onReplaceItem={(name) =>
+                  sendMessage(`Replace "${name}" with an alternative`)
+                }
                 isLatest={i === messages.length - 1}
               />
             ))}
