@@ -12,20 +12,20 @@ Redesign the shopping agent workflow so the AI is concise and efficient. Instead
 
 Two existing build errors must be resolved before any new features:
 
-1. **CSS import order**: Move the Google Fonts `@import` to the very top of `src/index.css`, before `@tailwind` directives
-2. **Missing dependency**: Install `react-markdown` (used by ChatMessage.tsx but not in package.json)
+1. **CSS import order**: Move the Google Fonts `@import` to the very top of `src/index.css`, before `@tailwind` directives ✅
+2. **Missing dependency**: Install `react-markdown` (used by ChatMessage.tsx but not in package.json) ✅
 
 ---
 
 ## OpenAI API Key Setup
 
-- Store your OpenAI API key as a backend secret (named `OPENAI_API_KEY`)
+- Store your OpenAI API key as a backend secret (named `OPENAI_API_KEY`) ✅
 - You will be prompted to paste the key securely — it is never stored in code
 - The edge function will use this key to call OpenAI's API directly (e.g., GPT-4o, GPT-4o-mini, or whichever model you prefer)
 
 ---
 
-## New Workflow (Streamlined)
+## New Workflow (Streamlined) ✅
 
 The current AI talks too much and does everything at once. The new flow is stage-based and buyer-driven:
 
@@ -72,14 +72,14 @@ Stage 6: CHECKOUT
 
 ## New Components
 
-### 1. ItemChecklist (`src/components/ItemChecklist.tsx`)
+### 1. ItemChecklist (`src/components/ItemChecklist.tsx`) ✅
 - Renders a grid of selectable item cards with checkboxes
 - Each card shows an emoji icon and item name
 - "Find these items" button at the bottom
 - The AI generates the checklist items based on the occasion (not hardcoded)
 - Appears inline in the chat as a special message type
 
-### 2. ClarificationForm (`src/components/ClarificationForm.tsx`)
+### 2. ClarificationForm (`src/components/ClarificationForm.tsx`) ✅
 - Card with dynamic form fields rendered inline in the chat
 - Field types: text input, number input, dropdown select, multi-select checkboxes
 - Pre-fills known values (editable), leaves unknown fields blank
@@ -88,7 +88,7 @@ Stage 6: CHECKOUT
 
 ---
 
-## Stage Configuration (`src/config/agentStages.ts`)
+## Stage Configuration (`src/config/agentStages.ts`) ✅
 
 A configuration file defining:
 - Stage names, order, and descriptions
@@ -108,7 +108,7 @@ Initial system prompt structure (all customizable by you):
 
 ---
 
-## Updated Types (`src/types/chat.ts`)
+## Updated Types (`src/types/chat.ts`) ✅
 
 New types added:
 - `WorkflowStage`: enum of the 6 stages
@@ -119,7 +119,7 @@ New types added:
 
 ---
 
-## Updated Edge Function (`supabase/functions/ai-shopping-agent/index.ts`)
+## Updated Edge Function (`supabase/functions/ai-shopping-agent/index.ts`) ✅
 
 Major changes:
 - Switch from Lovable AI gateway to **direct OpenAI API** using your `OPENAI_API_KEY`
@@ -134,7 +134,7 @@ Major changes:
 
 ---
 
-## Updated `useChat` Hook (`src/hooks/useChat.ts`)
+## Updated `useChat` Hook (`src/hooks/useChat.ts`) ✅
 
 - Track current `workflowStage` state
 - Handle three response types: streaming text, tool-call JSON (checklist/forms), and structured cart data
@@ -145,7 +145,7 @@ Major changes:
 
 ---
 
-## Updated `ChatMessage` Component (`src/components/ChatMessage.tsx`)
+## Updated `ChatMessage` Component (`src/components/ChatMessage.tsx`) ✅
 
 - Detect message type and render the appropriate component:
   - Regular text: render with ReactMarkdown (as now)
@@ -155,7 +155,7 @@ Major changes:
 
 ---
 
-## Updated `Index.tsx`
+## Updated `Index.tsx` ✅
 
 - Show subtle stage indicator in header (e.g., "Step 2 of 6 - Select Items")
 - Pass clarification/checklist handlers down to message components
@@ -178,16 +178,18 @@ The AI will be instructed to:
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/index.css` | Edit | Move @import to top (build fix) |
-| `package.json` | Edit | Add react-markdown dependency |
-| `src/config/agentStages.ts` | Create | Stage definitions and system prompts |
-| `src/types/chat.ts` | Edit | Add ChecklistItem, ClarificationField, WorkflowStage types |
-| `src/components/ItemChecklist.tsx` | Create | Selectable item grid for Stage 2 |
-| `src/components/ClarificationForm.tsx` | Create | Structured form for missing details |
-| `src/components/ChatMessage.tsx` | Edit | Render checklist/form/cart based on message type |
-| `src/hooks/useChat.ts` | Edit | Stage tracking, tool-call parsing, submit handlers |
-| `supabase/functions/ai-shopping-agent/index.ts` | Edit | OpenAI direct API, stage prompts, tool calling |
-| `src/pages/Index.tsx` | Edit | Stage indicator, wire up new handlers |
+| `src/index.css` | Edit ✅ | Move @import to top (build fix) |
+| `package.json` | Edit ✅ | Add react-markdown dependency |
+| `src/config/agentStages.ts` | Create ✅ | Stage definitions and system prompts |
+| `src/types/chat.ts` | Edit ✅ | Add ChecklistItem, ClarificationField, WorkflowStage types |
+| `src/components/ItemChecklist.tsx` | Create ✅ | Selectable item grid for Stage 2 |
+| `src/components/ClarificationForm.tsx` | Create ✅ | Structured form for missing details |
+| `src/components/CartRecommendation.tsx` | Create ✅ | Cart display card for Stage 4 |
+| `src/components/StageIndicator.tsx` | Create ✅ | Stage progress dots in header |
+| `src/components/ChatMessage.tsx` | Edit ✅ | Render checklist/form/cart based on message type |
+| `src/hooks/useChat.ts` | Edit ✅ | Stage tracking, tool-call parsing, submit handlers |
+| `supabase/functions/ai-shopping-agent/index.ts` | Edit ✅ | OpenAI direct API, stage prompts, tool calling |
+| `src/pages/Index.tsx` | Edit ✅ | Stage indicator, wire up new handlers |
 
 ---
 
@@ -198,4 +200,3 @@ The AI will be instructed to:
 - **Tool calling**: Used for structured outputs (checklists, forms, carts) so the AI returns clean JSON instead of messy text
 - **Streaming**: Used only for conversational text; tool-call responses are non-streaming for reliability
 - **All system prompts are in one config file** (`src/config/agentStages.ts`) so you can edit every stage's behavior in one place
-
