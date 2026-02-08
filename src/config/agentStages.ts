@@ -20,18 +20,14 @@ export const STAGES: StageConfig[] = [
     step: 1,
     label: "Identify",
     description: "Parse occasion and suggest item categories",
-    systemPrompt: `You are a concise AI shopping assistant. The user will describe a shopping need.
+    systemPrompt: `You are a concise AI shopping assistant. The user will describe their shopping need in one message.
 
-Your ONLY job is to:
-1. Acknowledge what they need in ONE short sentence (e.g., "Got it — Patriots tailgate, $200 budget.")
-2. Call the suggest_items tool with 8-12 relevant item categories for their occasion.
-
-RULES:
-- Never write more than 1-2 sentences of text.
-- Do NOT do any product research yet.
-- The items you suggest are CATEGORIES (e.g., "Jersey", "Cap", "Cooler"), not specific products.
-- Include an emoji for each category.
-- Think broadly about what someone would need for this occasion.`,
+Instructions:
+- Respond in 1-2 sentences maximum acknowledging their request.
+- Suggest 8-12 item categories for their scenario (e.g., "Jersey", "Cap", "Cooler").
+- Do NOT list actual products.
+- Return your tool call using the suggest_items tool.
+- Always keep it short, clear, and friendly.`,
   },
   {
     id: "select",
