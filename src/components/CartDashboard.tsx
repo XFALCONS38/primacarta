@@ -27,7 +27,10 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
     return acc;
   }, {} as Record<string, number>);
 
-  const pieData = Object.entries(retailerSpend).map(([name, value]) => ({ name, value: +value.toFixed(2) }));
+  const pieData = Object.entries(retailerSpend).map(([name, value]) => ({
+    name,
+    value: +value.toFixed(2),
+  }));
   const barData = [
     { name: "Spent", value: +totalCost.toFixed(2), fill: "hsl(220, 70%, 50%)" },
     { name: "Remaining", value: +Math.max(0, remaining).toFixed(2), fill: "hsl(150, 60%, 40%)" },
@@ -41,7 +44,6 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
-      {/* Ranking explanation */}
       {rankingExplanation && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="flex items-start gap-3 p-4">
@@ -50,13 +52,15 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">Why this set?</p>
-              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{rankingExplanation}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                {rankingExplanation}
+              </p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card className="border-border">
           <CardContent className="flex items-center gap-3 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -70,8 +74,14 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
         </Card>
         <Card className="border-border">
           <CardContent className="flex items-center gap-3 p-4">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${remaining >= 0 ? "bg-success/10" : "bg-destructive/10"}`}>
-              <CartIcon className={`h-5 w-5 ${remaining >= 0 ? "text-success" : "text-destructive"}`} />
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                remaining >= 0 ? "bg-success/10" : "bg-destructive/10"
+              }`}
+            >
+              <CartIcon
+                className={`h-5 w-5 ${remaining >= 0 ? "text-success" : "text-destructive"}`}
+              />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">
@@ -94,16 +104,24 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Spend by Retailer</CardTitle>
           </CardHeader>
           <CardContent className="pb-4">
-            <div className="h-40">
+            <div className="h-40 min-h-[160px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" strokeWidth={2}>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={35}
+                    outerRadius={60}
+                    dataKey="value"
+                    strokeWidth={2}
+                  >
                     {pieData.map((entry) => (
                       <Cell key={entry.name} fill={RETAILER_COLORS[entry.name] || "#888"} />
                     ))}
@@ -112,10 +130,13 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex justify-center gap-3 mt-1">
+            <div className="flex flex-wrap justify-center gap-3 mt-1">
               {pieData.map((entry) => (
                 <div key={entry.name} className="flex items-center gap-1.5 text-xs">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: RETAILER_COLORS[entry.name] }} />
+                  <div
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: RETAILER_COLORS[entry.name] }}
+                  />
                   <span className="text-muted-foreground">{entry.name}</span>
                 </div>
               ))}
@@ -128,7 +149,7 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
             <CardTitle className="text-sm font-medium">Budget Breakdown</CardTitle>
           </CardHeader>
           <CardContent className="pb-4">
-            <div className="h-40">
+            <div className="h-40 min-h-[160px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData} layout="vertical">
                   <XAxis type="number" hide domain={[0, budget]} />
@@ -158,10 +179,18 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Item</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Retailer</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Price</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Delivery</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
+                    Item
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
+                    Retailer
+                  </th>
+                  <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                    Price
+                  </th>
+                  <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                    Delivery
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -181,8 +210,12 @@ export function CartDashboard({ items, budget, rankingExplanation }: CartDashboa
                     <td className="px-4 py-2.5">
                       <RetailerBadge retailer={item.retailer} />
                     </td>
-                    <td className="px-4 py-2.5 text-right font-medium">${item.price.toFixed(2)}</td>
-                    <td className="px-4 py-2.5 text-right text-muted-foreground">{item.delivery_days}d</td>
+                    <td className="px-4 py-2.5 text-right font-medium">
+                      ${item.price.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">
+                      {item.delivery_days}d
+                    </td>
                   </tr>
                 ))}
               </tbody>

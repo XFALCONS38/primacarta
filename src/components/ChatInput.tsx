@@ -43,10 +43,10 @@ export function ChatInput({ onSend, onCancel, isLoading, placeholder }: ChatInpu
         onKeyDown={handleKeyDown}
         placeholder={placeholder || "Describe what you're shopping for..."}
         rows={1}
-        className="flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
+        className="flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-base outline-none placeholder:text-muted-foreground"
       />
       {isLoading ? (
-        <Button size="icon" variant="ghost" onClick={onCancel} className="h-8 w-8 shrink-0">
+        <Button size="icon" variant="ghost" onClick={onCancel} className="h-10 w-10 shrink-0">
           <Square className="h-4 w-4" />
         </Button>
       ) : (
@@ -54,7 +54,7 @@ export function ChatInput({ onSend, onCancel, isLoading, placeholder }: ChatInpu
           size="icon"
           onClick={handleSubmit}
           disabled={!input.trim()}
-          className="h-8 w-8 shrink-0 rounded-xl"
+          className="h-10 w-10 shrink-0 rounded-xl"
         >
           <Send className="h-4 w-4" />
         </Button>

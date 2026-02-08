@@ -23,10 +23,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import type {
   CartRecommendation as CartRecommendationType,
   AlternativeSet,
@@ -46,7 +46,6 @@ interface CartRecommendationProps {
   isLatest?: boolean;
 }
 
-// Dynamic color palette for any retailer
 const RETAILER_PALETTE = [
   "bg-blue-500",
   "bg-orange-500",
@@ -81,9 +80,7 @@ function RatingStars({ rating, reviewCount }: { rating?: number; reviewCount?: n
     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
       <span className="font-medium text-foreground">{rating.toFixed(1)}</span>
-      {reviewCount != null && (
-        <span>({reviewCount.toLocaleString()})</span>
-      )}
+      {reviewCount != null && <span>({reviewCount.toLocaleString()})</span>}
     </span>
   );
 }
@@ -98,34 +95,34 @@ function CartItemRow({
   onReplaceItem?: (name: string) => void;
 }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
+    <div className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
       <span className="mt-0.5 text-base">{item.emoji}</span>
       <div className="flex-1 min-w-0 space-y-0.5">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {item.url ? (
             <a
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate font-medium text-foreground hover:text-primary hover:underline inline-flex items-center gap-1"
+              className="font-medium text-foreground hover:text-primary hover:underline inline-flex items-center gap-1 break-words"
             >
               {item.name}
               <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
             </a>
           ) : (
-            <p className="truncate font-medium text-foreground">{item.name}</p>
+            <p className="font-medium text-foreground break-words">{item.name}</p>
           )}
           {item.reason && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="shrink-0 text-muted-foreground hover:text-primary">
-                  <Info className="h-3 w-3" />
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="shrink-0 text-muted-foreground hover:text-primary p-1 min-w-[28px] min-h-[28px] flex items-center justify-center">
+                  <Info className="h-3.5 w-3.5" />
                 </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[250px] text-xs">
+              </PopoverTrigger>
+              <PopoverContent side="top" className="max-w-[250px] text-xs p-3">
                 {item.reason}
-              </TooltipContent>
-            </Tooltip>
+              </PopoverContent>
+            </Popover>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
@@ -146,8 +143,14 @@ function CartItemRow({
           {item.shipping_cost != null && (
             <>
               <span>•</span>
-              <span className={cn(item.shipping_cost === 0 && "text-[hsl(var(--success))] font-medium")}>
-                {item.shipping_cost === 0 ? "Free shipping" : `+$${item.shipping_cost.toFixed(2)} ship`}
+              <span
+                className={cn(
+                  item.shipping_cost === 0 && "text-[hsl(var(--success))] font-medium"
+                )}
+              >
+                {item.shipping_cost === 0
+                  ? "Free shipping"
+                  : `+$${item.shipping_cost.toFixed(2)} ship`}
               </span>
             </>
           )}
@@ -169,9 +172,7 @@ function CartItemRow({
         </div>
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
-        <span className="font-medium text-foreground">
-          ${item.price.toFixed(2)}
-        </span>
+        <span className="font-medium text-foreground">${item.price.toFixed(2)}</span>
         {item.original_price && item.original_price > item.price && (
           <span className="text-[10px] text-muted-foreground line-through">
             ${item.original_price.toFixed(2)}
@@ -180,7 +181,7 @@ function CartItemRow({
         {isLatest && item.replace !== false && onReplaceItem && (
           <button
             onClick={() => onReplaceItem(item.name)}
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-w-[32px] min-h-[32px] flex items-center justify-center"
             title="Replace this item"
           >
             <ArrowRightLeft className="h-3.5 w-3.5" />
@@ -191,7 +192,6 @@ function CartItemRow({
   );
 }
 
-/** Compact item row used inside alternative set cards, with optional swap button */
 function AlternativeItemRow({
   item,
   mainCartItem,
@@ -204,9 +204,9 @@ function AlternativeItemRow({
   onSwapItem?: (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 text-xs group">
+    <div className="flex items-center gap-2 text-xs group flex-wrap sm:flex-nowrap">
       <span>{item.emoji}</span>
-      <span className="flex-1 min-w-0 truncate text-muted-foreground">
+      <span className="flex-1 min-w-0 text-muted-foreground break-words sm:truncate">
         {item.url ? (
           <a
             href={item.url}
@@ -229,16 +229,14 @@ function AlternativeItemRow({
         )}
       />
       <span className="text-muted-foreground shrink-0">{item.retailer}</span>
-      <span className="text-foreground font-medium shrink-0">
-        ${item.price.toFixed(2)}
-      </span>
+      <span className="text-foreground font-medium shrink-0">${item.price.toFixed(2)}</span>
       {isLatest && mainCartItem && onSwapItem && (
         <button
           onClick={() => onSwapItem(mainCartItem, item)}
-          className="rounded-md p-0.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary"
+          className="touch-visible rounded-md p-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary min-w-[28px] min-h-[28px] flex items-center justify-center"
           title={`Swap "${mainCartItem.name}" with "${item.name}"`}
         >
-          <ArrowRight className="h-3 w-3" />
+          <ArrowRight className="h-3.5 w-3.5" />
         </button>
       )}
     </div>
@@ -268,20 +266,15 @@ export function CartRecommendationCard({
     >
       <div className="flex items-center gap-2">
         <ShoppingCart className="h-4 w-4 text-primary" />
-        <h4 className="font-display text-sm font-semibold text-foreground">
-          Your Cart
-        </h4>
+        <h4 className="font-display text-sm font-semibold text-foreground">Your Cart</h4>
       </div>
 
-      {cart.summary && (
-        <p className="text-xs text-muted-foreground">{cart.summary}</p>
-      )}
+      {cart.summary && <p className="text-xs text-muted-foreground">{cart.summary}</p>}
 
-      {/* Ranking explanation */}
       {cart.rankingExplanation && (
         <Collapsible open={showExplanation} onOpenChange={setShowExplanation}>
           <CollapsibleTrigger asChild>
-            <button className="flex w-full items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/10">
+            <button className="flex w-full items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 min-h-[44px]">
               <Lightbulb className="h-3.5 w-3.5" />
               <span>Why this set?</span>
               <ChevronDown
@@ -300,15 +293,9 @@ export function CartRecommendationCard({
         </Collapsible>
       )}
 
-      {/* Cart items */}
       <div className="space-y-1.5">
         {cart.items.map((item, i) => (
-          <CartItemRow
-            key={i}
-            item={item}
-            isLatest={isLatest}
-            onReplaceItem={onReplaceItem}
-          />
+          <CartItemRow key={i} item={item} isLatest={isLatest} onReplaceItem={onReplaceItem} />
         ))}
       </div>
 
@@ -317,16 +304,12 @@ export function CartRecommendationCard({
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">
             Total:{" "}
-            <span className="font-semibold text-foreground">
-              ${cart.totalCost.toFixed(2)}
-            </span>
+            <span className="font-semibold text-foreground">${cart.totalCost.toFixed(2)}</span>
           </span>
           <span
             className={cn(
               "font-medium",
-              remaining >= 0
-                ? "text-[hsl(var(--success))]"
-                : "text-destructive"
+              remaining >= 0 ? "text-[hsl(var(--success))]" : "text-destructive"
             )}
           >
             {remaining >= 0
@@ -348,14 +331,10 @@ export function CartRecommendationCard({
         </p>
       </div>
 
-      {/* Alternative sets */}
       {cart.alternativeSets && cart.alternativeSets.length > 0 && (
-        <Collapsible
-          open={showAlternatives}
-          onOpenChange={setShowAlternatives}
-        >
+        <Collapsible open={showAlternatives} onOpenChange={setShowAlternatives}>
           <CollapsibleTrigger asChild>
-            <button className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50">
+            <button className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 min-h-[44px]">
               <ArrowRightLeft className="h-3.5 w-3.5" />
               <span>
                 {cart.alternativeSets.length} alternative set
@@ -386,23 +365,21 @@ export function CartRecommendationCard({
         </Collapsible>
       )}
 
-      {/* Item Explorer — tabbed category view */}
       <CartItemExplorer
         mainItems={cart.items}
         alternativeSets={cart.alternativeSets}
         searchCandidates={cart.searchCandidates}
       />
 
-      {/* Optimizer buttons + Checkout */}
       {isLatest && (
         <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {onOptimizeBudget && (
               <Button
                 onClick={onOptimizeBudget}
                 variant="outline"
                 size="sm"
-                className="rounded-xl text-xs h-8"
+                className="rounded-xl text-xs h-10"
               >
                 <DollarSign className="mr-1 h-3 w-3" />
                 Optimize Budget
@@ -413,7 +390,7 @@ export function CartRecommendationCard({
                 onClick={onOptimizeDelivery}
                 variant="outline"
                 size="sm"
-                className="rounded-xl text-xs h-8"
+                className="rounded-xl text-xs h-10"
               >
                 <Clock className="mr-1 h-3 w-3" />
                 Optimize Delivery
@@ -421,11 +398,7 @@ export function CartRecommendationCard({
             )}
           </div>
           {onCheckout && (
-            <Button
-              onClick={onCheckout}
-              className="w-full rounded-xl font-medium"
-              size="sm"
-            >
+            <Button onClick={onCheckout} className="w-full rounded-xl font-medium" size="sm">
               <CreditCard className="mr-2 h-4 w-4" />
               Confirm & Checkout
             </Button>
@@ -451,20 +424,18 @@ function AlternativeSetCard({
 }) {
   const totalCost = alt.items.reduce((sum, item) => sum + item.price, 0);
 
-  // Try to match alternative items to main cart items by category
-  const findMainCartMatch = (altItem: CartRecommendationItem): CartRecommendationItem | undefined => {
+  const findMainCartMatch = (
+    altItem: CartRecommendationItem
+  ): CartRecommendationItem | undefined => {
     return mainCartItems.find(
-      (mainItem) =>
-        mainItem.category?.toLowerCase() === altItem.category?.toLowerCase()
+      (mainItem) => mainItem.category?.toLowerCase() === altItem.category?.toLowerCase()
     );
   };
 
   return (
     <div className="rounded-lg border border-border bg-background p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <h5 className="text-xs font-semibold text-foreground">
-          {alt.set_name}
-        </h5>
+        <h5 className="text-xs font-semibold text-foreground">{alt.set_name}</h5>
         <span className="text-xs font-medium text-muted-foreground">
           ${totalCost.toFixed(2)}
         </span>
@@ -488,7 +459,7 @@ function AlternativeSetCard({
           onClick={() => onSelectSet(alt)}
           variant="outline"
           size="sm"
-          className="w-full rounded-lg text-xs h-7"
+          className="w-full rounded-lg text-xs h-9"
         >
           <CheckCircle2 className="mr-1.5 h-3 w-3" />
           Use this set instead

@@ -19,18 +19,18 @@ export function StageIndicator({ currentStage }: StageIndicatorProps) {
           <div
             key={s.id}
             className={cn(
-              "h-1.5 rounded-full transition-all",
+              "rounded-full transition-all",
               isCurrent
-                ? "w-6 bg-primary"
+                ? "w-6 h-2 bg-primary"
                 : isPast
-                  ? "w-1.5 bg-primary/40"
-                  : "w-1.5 bg-muted"
+                  ? "w-2 h-2 bg-primary/40"
+                  : "w-2 h-2 bg-muted"
             )}
             title={`${s.step}. ${s.label}`}
           />
         );
       })}
-      <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">
+      <span className="ml-1.5 text-[10px] font-medium text-muted-foreground hidden sm:inline">
         {currentConfig.label}
       </span>
     </div>

@@ -62,17 +62,17 @@ export function CheckoutSimulation({
         </p>
       </div>
 
-      {/* User info banner */}
       {checkoutInfo && (
         <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="flex items-start gap-3 p-3 text-xs">
+          <CardContent className="flex flex-col gap-2 p-3 text-xs sm:flex-row sm:items-start sm:gap-3">
             <div className="flex-1 space-y-1">
               <div className="flex items-center gap-1.5 font-medium text-foreground">
                 <MapPin className="h-3 w-3 text-primary" />
                 {checkoutInfo.fullName}
               </div>
-              <p className="text-muted-foreground">
-                {checkoutInfo.address}, {checkoutInfo.city}, {checkoutInfo.state} {checkoutInfo.zip}
+              <p className="text-muted-foreground break-words">
+                {checkoutInfo.address}, {checkoutInfo.city}, {checkoutInfo.state}{" "}
+                {checkoutInfo.zip}
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -92,11 +92,9 @@ export function CheckoutSimulation({
               gi < currentRetailer ? "opacity-60" : ""
             )}
           >
-            <CardHeader className="flex-row items-center justify-between pb-2">
+            <CardHeader className="flex-row items-center justify-between pb-2 flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-sm font-medium">
-                  Step {gi + 1}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Step {gi + 1}</CardTitle>
                 <RetailerBadge retailer={group.retailer} />
               </div>
               <span className="text-sm font-medium text-foreground">
@@ -104,7 +102,6 @@ export function CheckoutSimulation({
               </span>
             </CardHeader>
             <CardContent className="pb-4 space-y-3">
-              {/* Items in this order */}
               <div className="flex flex-wrap gap-1.5">
                 {group.items.map((item, ii) => (
                   <span
@@ -116,14 +113,11 @@ export function CheckoutSimulation({
                 ))}
               </div>
 
-              {/* Checkout steps */}
               <div className="space-y-2">
                 {group.steps.map((stepLabel, si) => {
                   const done =
-                    gi < currentRetailer ||
-                    (gi === currentRetailer && si <= currentStep);
-                  const active =
-                    gi === currentRetailer && si === currentStep;
+                    gi < currentRetailer || (gi === currentRetailer && si <= currentStep);
+                  const active = gi === currentRetailer && si === currentStep;
 
                   return (
                     <div key={si} className="flex items-center gap-2.5">
@@ -140,17 +134,13 @@ export function CheckoutSimulation({
                         {done ? (
                           <Check className="h-3 w-3" />
                         ) : (
-                          <span className="text-[10px] font-medium">
-                            {si + 1}
-                          </span>
+                          <span className="text-[10px] font-medium">{si + 1}</span>
                         )}
                       </motion.div>
                       <span
                         className={cn(
                           "text-sm",
-                          done
-                            ? "text-foreground font-medium"
-                            : "text-muted-foreground"
+                          done ? "text-foreground font-medium" : "text-muted-foreground"
                         )}
                       >
                         {stepLabel}
@@ -160,7 +150,6 @@ export function CheckoutSimulation({
                 })}
               </div>
 
-              {/* Delivery estimate */}
               {group.estimated_delivery_days && (
                 <p className="text-[11px] text-muted-foreground">
                   Est. delivery: {group.estimated_delivery_days} days
