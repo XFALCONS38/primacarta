@@ -181,7 +181,7 @@ const Index = () => {
               AI Shopping Agent
             </h2>
             <p className="text-[11px] text-muted-foreground">
-              Amazon • Walmart • Target
+              Searching all online stores
             </p>
           </div>
           <StageIndicator currentStage={stage} />
