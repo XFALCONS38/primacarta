@@ -579,6 +579,7 @@ serve(async (req) => {
         location: ctx.location,
         budget: ctx.budget,
         preferredRetailers: ctx.preferredRetailers,
+        buyerContext: ctx.buyerContext,
       }));
 
       if (ctx.categories.length > 0) {
@@ -586,7 +587,8 @@ serve(async (req) => {
           ctx.categories,
           ctx.location,
           ctx.preferredRetailers,
-          FIRECRAWL_API_KEY
+          FIRECRAWL_API_KEY,
+          ctx.buyerContext
         );
         systemPrompt = buildResearchPrompt(searchContext, ctx.location);
       } else {
