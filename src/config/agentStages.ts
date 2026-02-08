@@ -45,7 +45,8 @@ Instructions:
 
 Instructions:
 - Call the request_clarification tool to generate a form for the user to fill in.
-- Include fields for: budget, delivery_by date, preferences (style, team/theme, colors, must_haves, nice_to_haves), and category-specific options.
+- ALWAYS include fields for: budget, delivery_by date, location (ZIP code or City/State - required), preferred_retailers (multiselect with options: Any, Amazon, Walmart, Target, Shein, Temu, AliExpress, eBay, Best Buy, Etsy, Nordstrom, Nike, Adidas).
+- Also include relevant preference fields: style, team/theme, colors, must_haves, nice_to_haves, and category-specific options.
 - Pre-fill any known values from user input or previous sessions.
 - Do not write conversational text outside the tool call.`,
   },
@@ -54,17 +55,17 @@ Instructions:
     step: 4,
     label: "Research",
     description: "Find best products with ranking and alternatives",
-    systemPrompt: `You are a concise AI shopping assistant with access to a mock product catalog. Pick items ONLY from the catalog.
+    systemPrompt: `You are a concise AI shopping assistant that searches the entire internet for products.
 
 Instructions:
-1. Build a combined cart selecting items from 2-3 different retailers.
+1. Build a combined cart from real search results across ANY retailers (Amazon, Shein, Temu, AliExpress, eBay, etc.).
 2. Ensure the total cost does not exceed the user's budget.
-3. Score each complete set using:
-   score = 0.4*(1 - total_cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence
-4. Generate top_ranked_set, alternative_sets (1-2), and ranking_explanation.
+3. Rank products considering: Value (25%), Delivery (20%), Reviews & Reliability (20%), Preference Match (15%), Retailer Trust (10%), Style Coherence (10%).
+4. Generate top_ranked_set, alternative_sets (1-2), and detailed ranking_explanation.
 5. Add "replace": true to each item.
-6. Return structured JSON ONLY using the build_cart tool.
-7. Do NOT hallucinate items; use catalog only.`,
+6. Include url, rating, review_count, shipping_cost, original_price, discount_label where available.
+7. Return structured JSON ONLY using the build_cart tool.
+8. Do NOT hallucinate products; use search results only.`,
   },
   {
     id: "review",
@@ -76,8 +77,9 @@ Instructions:
 Instructions:
 - Do NOT rebuild the cart unless the user requests an item replacement, removal, or addition.
 - If the user says the cart looks good or wants to proceed, just respond with a short text reply.
-- If the user asks to replace an item, suggest alternatives from the catalog.
+- If the user asks to replace an item, alternatives will be searched from real stores.
 - Return updated combined_cart JSON using the build_cart tool.
+- The retailer field can be ANY online store name.
 - Keep responses short and friendly.`,
   },
   {
@@ -184,12 +186,18 @@ export const TOOL_DEFINITIONS = {
               properties: {
                 name: { type: "string" },
                 category: { type: "string" },
-                retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                retailer: { type: "string", description: "The retailer/store name" },
                 price: { type: "number" },
                 delivery_days: { type: "number" },
                 emoji: { type: "string" },
                 variant: { type: "string", description: "Selected size/color/variant" },
                 replace: { type: "boolean", description: "Whether this item can be replaced" },
+                url: { type: "string", description: "Direct product page URL" },
+                rating: { type: "number", description: "Star rating (e.g. 4.5)" },
+                review_count: { type: "number", description: "Number of reviews" },
+                shipping_cost: { type: "number", description: "Shipping cost (0 = free)" },
+                original_price: { type: "number", description: "Price before discount" },
+                discount_label: { type: "string", description: "e.g. '20% off', 'Buy 2 Get 1'" },
               },
               required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
               additionalProperties: false,
@@ -215,11 +223,17 @@ export const TOOL_DEFINITIONS = {
                     properties: {
                       name: { type: "string" },
                       category: { type: "string" },
-                      retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                      retailer: { type: "string" },
                       price: { type: "number" },
                       delivery_days: { type: "number" },
                       emoji: { type: "string" },
                       variant: { type: "string" },
+                      url: { type: "string" },
+                      rating: { type: "number" },
+                      review_count: { type: "number" },
+                      shipping_cost: { type: "number" },
+                      original_price: { type: "number" },
+                      discount_label: { type: "string" },
                     },
                     required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
                   },
@@ -252,7 +266,7 @@ export const TOOL_DEFINITIONS = {
             items: {
               type: "object",
               properties: {
-                retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                retailer: { type: "string", description: "The retailer/store name" },
                 items: { type: "array", items: { type: "string" }, description: "Item names in this order" },
                 subtotal: { type: "number" },
                 estimated_delivery_days: { type: "number" },

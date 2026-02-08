@@ -74,7 +74,7 @@ export function CheckoutSimulation({
                 <CardTitle className="text-sm font-medium">
                   Step {gi + 1}
                 </CardTitle>
-                <RetailerBadge retailer={group.retailer as "Amazon" | "Walmart" | "Target"} />
+                <RetailerBadge retailer={group.retailer} />
               </div>
               <span className="text-sm font-medium text-foreground">
                 ${group.subtotal.toFixed(2)}

@@ -55,12 +55,18 @@ export interface UserSpec {
 export interface CartRecommendationItem {
   name: string;
   category: string;
-  retailer: "Amazon" | "Walmart" | "Target";
+  retailer: string;
   price: number;
   delivery_days: number;
   emoji: string;
   variant?: string;
   replace?: boolean;
+  url?: string;
+  rating?: number;
+  review_count?: number;
+  shipping_cost?: number;
+  original_price?: number;
+  discount_label?: string;
 }
 
 export interface AlternativeSet {

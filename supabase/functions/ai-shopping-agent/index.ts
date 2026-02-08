@@ -6,91 +6,198 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ─── PRODUCT CATALOG ───
-// Embedded from src/data/products.ts so the AI can reference real products
-const PRODUCT_CATALOG = [
-  // APPAREL
-  { id:"amz-a1", name:"Classic Cotton T-Shirt", price:18.99, delivery_days:2, retailer:"Amazon", category:"apparel", colors:["white","black","navy","red"], variants:["S","M","L","XL"], emoji:"👕" },
-  { id:"amz-a2", name:"Slim Fit Jeans", price:34.99, delivery_days:3, retailer:"Amazon", category:"apparel", colors:["blue","black","gray"], variants:["30","32","34","36"], emoji:"👖" },
-  { id:"amz-a3", name:"Zip-Up Hoodie", price:42.99, delivery_days:2, retailer:"Amazon", category:"apparel", colors:["gray","black","navy"], variants:["S","M","L","XL"], emoji:"🧥" },
-  { id:"amz-a4", name:"Running Shorts", price:22.99, delivery_days:1, retailer:"Amazon", category:"apparel", colors:["black","navy","gray"], variants:["S","M","L"], emoji:"🩳" },
-  { id:"amz-a5", name:"Wool Blend Beanie", price:14.99, delivery_days:1, retailer:"Amazon", category:"apparel", colors:["black","gray","red","navy"], variants:["One Size"], emoji:"🧢" },
-  { id:"wmt-a1", name:"Athletic Polo Shirt", price:15.99, delivery_days:3, retailer:"Walmart", category:"apparel", colors:["white","blue","black"], variants:["S","M","L","XL"], emoji:"👕" },
-  { id:"wmt-a2", name:"Cargo Pants", price:28.99, delivery_days:4, retailer:"Walmart", category:"apparel", colors:["khaki","olive","black"], variants:["30","32","34","36"], emoji:"👖" },
-  { id:"wmt-a3", name:"Pullover Sweatshirt", price:24.99, delivery_days:3, retailer:"Walmart", category:"apparel", colors:["gray","navy","red"], variants:["S","M","L","XL"], emoji:"🧥" },
-  { id:"wmt-a4", name:"Denim Jacket", price:39.99, delivery_days:4, retailer:"Walmart", category:"apparel", colors:["blue","black"], variants:["S","M","L","XL"], emoji:"🧥" },
-  { id:"tgt-a1", name:"Organic Cotton Tee", price:16.99, delivery_days:3, retailer:"Target", category:"apparel", colors:["white","sage","blush","navy"], variants:["XS","S","M","L"], emoji:"👕" },
-  { id:"tgt-a2", name:"High-Rise Leggings", price:29.99, delivery_days:2, retailer:"Target", category:"apparel", colors:["black","gray","navy"], variants:["XS","S","M","L"], emoji:"👖" },
-  { id:"tgt-a3", name:"Fleece Vest", price:34.99, delivery_days:3, retailer:"Target", category:"apparel", colors:["black","olive","navy"], variants:["S","M","L","XL"], emoji:"🧥" },
-  { id:"tgt-a4", name:"Linen Button-Down", price:32.99, delivery_days:3, retailer:"Target", category:"apparel", colors:["white","blue","tan"], variants:["S","M","L","XL"], emoji:"👔" },
-  // SPORTS GEAR
-  { id:"amz-s1", name:"NFL Team Jersey", price:79.99, delivery_days:3, retailer:"Amazon", category:"sports", colors:["team colors"], variants:["Patriots","Chiefs","Cowboys","49ers"], emoji:"🏈" },
-  { id:"amz-s2", name:"Team Baseball Cap", price:24.99, delivery_days:2, retailer:"Amazon", category:"sports", colors:["team colors"], variants:["Patriots","Yankees","Lakers","Bulls"], emoji:"🧢" },
-  { id:"amz-s3", name:"Athletic Running Shoes", price:64.99, delivery_days:2, retailer:"Amazon", category:"sports", colors:["black","white","blue"], variants:["8","9","10","11","12"], emoji:"👟" },
-  { id:"amz-s4", name:"Insulated Team Water Bottle", price:19.99, delivery_days:1, retailer:"Amazon", category:"sports", colors:["team colors"], variants:["Patriots","Lakers","Yankees"], emoji:"🥤" },
-  { id:"amz-s5", name:"Team Fan Scarf", price:22.99, delivery_days:2, retailer:"Amazon", category:"sports", colors:["team colors"], variants:["Patriots","Chiefs","Packers"], emoji:"🧣" },
-  { id:"wmt-s1", name:"Sports Team Hoodie", price:44.99, delivery_days:4, retailer:"Walmart", category:"sports", colors:["team colors"], variants:["Patriots","Cowboys","Chiefs","Eagles"], emoji:"🧥" },
-  { id:"wmt-s2", name:"Team Logo Socks (3-Pack)", price:12.99, delivery_days:3, retailer:"Walmart", category:"sports", colors:["team colors"], variants:["Patriots","Lakers","Bulls"], emoji:"🧦" },
-  { id:"wmt-s3", name:"Basketball Shorts", price:19.99, delivery_days:3, retailer:"Walmart", category:"sports", colors:["black","red","blue"], variants:["S","M","L","XL"], emoji:"🩳" },
-  { id:"wmt-s4", name:"Team Rally Towel", price:9.99, delivery_days:3, retailer:"Walmart", category:"sports", colors:["team colors"], variants:["Patriots","Chiefs","Steelers"], emoji:"🏳️" },
-  { id:"tgt-s1", name:"Team Spirit T-Shirt", price:21.99, delivery_days:2, retailer:"Target", category:"sports", colors:["team colors"], variants:["Patriots","49ers","Packers","Bears"], emoji:"👕" },
-  { id:"tgt-s2", name:"Athletic Sneakers", price:54.99, delivery_days:3, retailer:"Target", category:"sports", colors:["white","black","gray"], variants:["8","9","10","11"], emoji:"👟" },
-  { id:"tgt-s3", name:"Team Face Paint Kit", price:8.99, delivery_days:2, retailer:"Target", category:"sports", colors:["multi"], variants:["NFL","NBA","MLB"], emoji:"🎨" },
-  { id:"tgt-s4", name:"Sports Backpack", price:34.99, delivery_days:3, retailer:"Target", category:"sports", colors:["black","navy","red"], variants:["Standard"], emoji:"🎒" },
-  // ELECTRONICS
-  { id:"amz-e1", name:"Wireless Bluetooth Earbuds", price:49.99, delivery_days:1, retailer:"Amazon", category:"electronics", colors:["black","white"], variants:["Standard","Pro"], emoji:"🎧" },
-  { id:"amz-e2", name:"Portable Phone Charger 10000mAh", price:24.99, delivery_days:1, retailer:"Amazon", category:"electronics", colors:["black","white"], variants:["10000mAh","20000mAh"], emoji:"🔋" },
-  { id:"amz-e3", name:"Smart Watch Fitness Tracker", price:89.99, delivery_days:2, retailer:"Amazon", category:"electronics", colors:["black","silver","rose gold"], variants:["Standard","Premium"], emoji:"⌚" },
-  { id:"amz-e4", name:"Bluetooth Speaker Waterproof", price:39.99, delivery_days:2, retailer:"Amazon", category:"electronics", colors:["black","blue","red"], variants:["Mini","Standard"], emoji:"🔊" },
-  { id:"amz-e5", name:"USB-C Fast Charging Cable (3-Pack)", price:14.99, delivery_days:1, retailer:"Amazon", category:"electronics", colors:["black","white"], variants:["3ft","6ft"], emoji:"🔌" },
-  { id:"wmt-e1", name:"Over-Ear Headphones", price:34.99, delivery_days:3, retailer:"Walmart", category:"electronics", colors:["black","blue"], variants:["Wired","Wireless"], emoji:"🎧" },
-  { id:"wmt-e2", name:"LED Desk Lamp", price:22.99, delivery_days:4, retailer:"Walmart", category:"electronics", colors:["white","black"], variants:["Standard","With USB"], emoji:"💡" },
-  { id:"wmt-e3", name:"Tablet Stand Adjustable", price:16.99, delivery_days:3, retailer:"Walmart", category:"electronics", colors:["silver","black"], variants:["Standard"], emoji:"📱" },
-  { id:"tgt-e1", name:"Wireless Charging Pad", price:19.99, delivery_days:2, retailer:"Target", category:"electronics", colors:["white","black"], variants:["Standard","Fast"], emoji:"🔋" },
-  { id:"tgt-e2", name:"Portable Mini Speaker", price:29.99, delivery_days:2, retailer:"Target", category:"electronics", colors:["teal","coral","black"], variants:["Standard"], emoji:"🔊" },
-  { id:"tgt-e3", name:"Screen Protector (2-Pack)", price:9.99, delivery_days:1, retailer:"Target", category:"electronics", colors:["clear"], variants:["iPhone","Samsung","Universal"], emoji:"📱" },
-  // HOME GOODS
-  { id:"amz-h1", name:"Scented Candle Set (3-Pack)", price:24.99, delivery_days:2, retailer:"Amazon", category:"home", colors:["white","amber"], variants:["Vanilla","Lavender","Ocean"], emoji:"🕯️" },
-  { id:"amz-h2", name:"Decorative Throw Pillow", price:19.99, delivery_days:2, retailer:"Amazon", category:"home", colors:["gray","blue","cream","rust"], variants:["18x18","20x20"], emoji:"🛋️" },
-  { id:"amz-h3", name:"French Press Coffee Maker", price:29.99, delivery_days:2, retailer:"Amazon", category:"home", colors:["black","copper"], variants:["12oz","34oz"], emoji:"☕" },
-  { id:"amz-h4", name:"Bamboo Cutting Board Set", price:22.99, delivery_days:2, retailer:"Amazon", category:"home", colors:["natural"], variants:["3-Pack"], emoji:"🪵" },
-  { id:"wmt-h1", name:"Microfiber Sheet Set", price:29.99, delivery_days:3, retailer:"Walmart", category:"home", colors:["white","gray","navy","sage"], variants:["Twin","Full","Queen","King"], emoji:"🛏️" },
-  { id:"wmt-h2", name:"Stainless Steel Water Bottle", price:14.99, delivery_days:3, retailer:"Walmart", category:"home", colors:["silver","black","blue"], variants:["24oz","32oz"], emoji:"🥤" },
-  { id:"wmt-h3", name:"Storage Basket Set (3-Pack)", price:18.99, delivery_days:4, retailer:"Walmart", category:"home", colors:["gray","white","brown"], variants:["Small","Medium"], emoji:"🧺" },
-  { id:"tgt-h1", name:"Ceramic Vase", price:16.99, delivery_days:2, retailer:"Target", category:"home", colors:["white","terracotta","sage"], variants:["Small","Medium"], emoji:"🏺" },
-  { id:"tgt-h2", name:"Cozy Throw Blanket", price:24.99, delivery_days:2, retailer:"Target", category:"home", colors:["cream","gray","blush"], variants:["50x60"], emoji:"🧶" },
-  { id:"tgt-h3", name:"Glass Food Storage Set (8-Piece)", price:32.99, delivery_days:3, retailer:"Target", category:"home", colors:["clear"], variants:["8-Piece"], emoji:"🫙" },
-  { id:"tgt-h4", name:"Woven Placemat Set (4-Pack)", price:14.99, delivery_days:2, retailer:"Target", category:"home", colors:["natural","gray","black"], variants:["4-Pack"], emoji:"🍽️" },
-  // PARTY SUPPLIES
-  { id:"amz-p1", name:"Balloon Arch Kit (100pc)", price:19.99, delivery_days:2, retailer:"Amazon", category:"party", colors:["multi","gold","pastel"], variants:["Birthday","Wedding","Generic"], emoji:"🎈" },
-  { id:"amz-p2", name:"Disposable Dinnerware Set (50pc)", price:24.99, delivery_days:2, retailer:"Amazon", category:"party", colors:["gold","silver","rose gold"], variants:["25 guests","50 guests"], emoji:"🍽️" },
-  { id:"amz-p3", name:"LED String Lights 50ft", price:15.99, delivery_days:1, retailer:"Amazon", category:"party", colors:["warm white","multi","cool white"], variants:["50ft","100ft"], emoji:"✨" },
-  { id:"amz-p4", name:"Photo Booth Props Kit (30pc)", price:12.99, delivery_days:2, retailer:"Amazon", category:"party", colors:["multi"], variants:["Birthday","Wedding","Graduation"], emoji:"📸" },
-  { id:"wmt-p1", name:"Paper Cups & Plates Set (40pc)", price:8.99, delivery_days:3, retailer:"Walmart", category:"party", colors:["blue","pink","gold"], variants:["20 guests"], emoji:"🥤" },
-  { id:"wmt-p2", name:"Birthday Banner & Bunting", price:6.99, delivery_days:3, retailer:"Walmart", category:"party", colors:["multi","gold","pink"], variants:["Happy Birthday","Congrats"], emoji:"🎉" },
-  { id:"wmt-p3", name:"Tablecloth 3-Pack", price:9.99, delivery_days:3, retailer:"Walmart", category:"party", colors:["white","black","red","blue"], variants:["54x108"], emoji:"🎪" },
-  { id:"wmt-p4", name:"Party Favor Bags (50pc)", price:7.99, delivery_days:3, retailer:"Walmart", category:"party", colors:["multi","pastel","neon"], variants:["50pc"], emoji:"🎁" },
-  { id:"tgt-p1", name:"Confetti Pack (Gold & Silver)", price:5.99, delivery_days:2, retailer:"Target", category:"party", colors:["gold","silver","rose gold"], variants:["1 Pack"], emoji:"🎊" },
-  { id:"tgt-p2", name:"Party Napkins 100ct", price:6.99, delivery_days:2, retailer:"Target", category:"party", colors:["white","pastel","bright"], variants:["100ct"], emoji:"🧻" },
-  { id:"tgt-p3", name:"Cake Topper Decoration", price:8.99, delivery_days:2, retailer:"Target", category:"party", colors:["gold","silver"], variants:["Happy Birthday","Celebrate","Custom Age"], emoji:"🎂" },
-  { id:"tgt-p4", name:"Helium Balloon Kit (20pc)", price:14.99, delivery_days:2, retailer:"Target", category:"party", colors:["pastel","bright","metallic"], variants:["20pc"], emoji:"🎈" },
-  // ACCESSORIES
-  { id:"amz-x1", name:"Leather Wallet", price:29.99, delivery_days:2, retailer:"Amazon", category:"accessories", colors:["brown","black","tan"], variants:["Bifold","Trifold"], emoji:"👛" },
-  { id:"amz-x2", name:"Polarized Sunglasses", price:24.99, delivery_days:2, retailer:"Amazon", category:"accessories", colors:["black","tortoise","clear"], variants:["Standard"], emoji:"🕶️" },
-  { id:"amz-x3", name:"Canvas Tote Bag", price:18.99, delivery_days:2, retailer:"Amazon", category:"accessories", colors:["natural","black","navy"], variants:["Standard"], emoji:"👜" },
-  { id:"amz-x4", name:"Leather Belt", price:19.99, delivery_days:2, retailer:"Amazon", category:"accessories", colors:["brown","black"], variants:["S","M","L","XL"], emoji:"🪢" },
-  { id:"wmt-x1", name:"Digital Watch", price:19.99, delivery_days:3, retailer:"Walmart", category:"accessories", colors:["black","silver"], variants:["Standard"], emoji:"⌚" },
-  { id:"wmt-x2", name:"Knit Scarf", price:12.99, delivery_days:3, retailer:"Walmart", category:"accessories", colors:["gray","navy","red","cream"], variants:["Standard"], emoji:"🧣" },
-  { id:"wmt-x3", name:"Crossbody Bag", price:22.99, delivery_days:4, retailer:"Walmart", category:"accessories", colors:["black","tan","olive"], variants:["Small","Medium"], emoji:"👜" },
-  { id:"tgt-x1", name:"Beaded Bracelet Set", price:12.99, delivery_days:2, retailer:"Target", category:"accessories", colors:["multi","earth tones","metallics"], variants:["Set of 3"], emoji:"📿" },
-  { id:"tgt-x2", name:"Hair Accessories Set", price:9.99, delivery_days:2, retailer:"Target", category:"accessories", colors:["multi","neutrals","pastels"], variants:["12-Pack"], emoji:"🎀" },
-  { id:"tgt-x3", name:"Travel Toiletry Bag", price:16.99, delivery_days:2, retailer:"Target", category:"accessories", colors:["black","floral","navy"], variants:["Standard"], emoji:"🧳" },
-  { id:"tgt-x4", name:"Minimalist Card Holder", price:14.99, delivery_days:2, retailer:"Target", category:"accessories", colors:["black","tan","blush"], variants:["Standard"], emoji:"💳" },
-];
+// ─── FIRECRAWL PRODUCT SEARCH ───
 
-const CATALOG_JSON = JSON.stringify(PRODUCT_CATALOG);
+interface SearchResult {
+  title: string;
+  url: string;
+  description: string;
+  markdown: string;
+}
 
-// Stage-specific system prompts
+interface ProductSearchResult {
+  category: string;
+  results: SearchResult[];
+}
+
+/**
+ * Search for products using Firecrawl web search API.
+ * Supports optional site filtering and location-based queries.
+ */
+async function searchProducts(
+  query: string,
+  location: string,
+  preferredRetailers: string[],
+  firecrawlKey: string
+): Promise<SearchResult[]> {
+  // Build search query with location context
+  let searchQuery = `${query} buy online price reviews shipping`;
+  if (location) {
+    searchQuery += ` delivery to ${location}`;
+  }
+
+  // Add site: filters if specific retailers requested
+  if (preferredRetailers.length > 0 && !preferredRetailers.includes("Any")) {
+    const siteMap: Record<string, string> = {
+      "Amazon": "amazon.com",
+      "Walmart": "walmart.com",
+      "Target": "target.com",
+      "Shein": "shein.com",
+      "Temu": "temu.com",
+      "AliExpress": "aliexpress.com",
+      "eBay": "ebay.com",
+      "Best Buy": "bestbuy.com",
+      "Etsy": "etsy.com",
+      "Nordstrom": "nordstrom.com",
+      "Costco": "costco.com",
+      "Wayfair": "wayfair.com",
+      "Nike": "nike.com",
+      "Adidas": "adidas.com",
+      "ASOS": "asos.com",
+      "Zara": "zara.com",
+      "H&M": "hm.com",
+      "Macy's": "macys.com",
+      "Home Depot": "homedepot.com",
+      "Lowe's": "lowes.com",
+    };
+    const sites = preferredRetailers
+      .map((r) => siteMap[r] || `${r.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`)
+      .map((s) => `site:${s}`)
+      .join(" OR ");
+    searchQuery = `${query} buy online price reviews (${sites})`;
+  }
+
+  console.log(`Firecrawl search: "${searchQuery}"`);
+
+  try {
+    const response = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${firecrawlKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: searchQuery,
+        limit: 5,
+        scrapeOptions: { formats: ["markdown"] },
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`Firecrawl error for "${query}":`, response.status, errText);
+      return [];
+    }
+
+    const data = await response.json();
+    const results: SearchResult[] = (data.data || []).map((r: any) => ({
+      title: r.title || "",
+      url: r.url || "",
+      description: r.description || "",
+      // Truncate markdown to keep token count manageable
+      markdown: (r.markdown || r.description || "").slice(0, 600),
+    }));
+
+    console.log(`Found ${results.length} results for "${query}"`);
+    return results;
+  } catch (err) {
+    console.error(`Firecrawl search failed for "${query}":`, err);
+    return [];
+  }
+}
+
+/**
+ * Search for products across all selected item categories in parallel.
+ * Returns a formatted context block for the AI prompt.
+ */
+async function searchAllCategories(
+  categories: string[],
+  location: string,
+  preferredRetailers: string[],
+  firecrawlKey: string
+): Promise<string> {
+  console.log(`Searching ${categories.length} categories...`);
+
+  const searchPromises = categories.map(async (category) => {
+    const results = await searchProducts(category, location, preferredRetailers, firecrawlKey);
+    return { category, results };
+  });
+
+  const allResults = await Promise.allSettled(searchPromises);
+  const successfulResults: ProductSearchResult[] = [];
+
+  for (const result of allResults) {
+    if (result.status === "fulfilled" && result.value.results.length > 0) {
+      successfulResults.push(result.value);
+    }
+  }
+
+  if (successfulResults.length === 0) {
+    return "No products found. Please suggest the user try different search terms or broader retailer options.";
+  }
+
+  // Format results into a structured context block
+  let context = "";
+  for (const { category, results } of successfulResults) {
+    context += `\n=== ${category.toUpperCase()} ===\n`;
+    for (const r of results) {
+      context += `\n--- Product ---\n`;
+      context += `Title: ${r.title}\n`;
+      context += `URL: ${r.url}\n`;
+      context += `Description: ${r.description}\n`;
+      context += `Details:\n${r.markdown}\n`;
+    }
+  }
+
+  console.log(`Total search context: ${context.length} chars`);
+  return context;
+}
+
+/**
+ * Extract structured info from conversation messages:
+ * categories, location, budget, preferences, preferred retailers
+ */
+function extractContextFromMessages(messages: { role: string; content: string }[]): {
+  categories: string[];
+  location: string;
+  budget: number;
+  preferences: string;
+  preferredRetailers: string[];
+} {
+  const fullText = messages.map((m) => m.content).join("\n");
+
+  // Extract item categories from "I want these items: X, Y, Z"
+  const itemsMatch = fullText.match(/I want these items:\s*(.+)/i);
+  const categories = itemsMatch
+    ? itemsMatch[1].split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  // Extract location (ZIP code or city/state)
+  const locationMatch = fullText.match(
+    /(?:location|zip|zip code|city|deliver to|shipping to)[:\s]*([A-Za-z0-9\s,]+?)(?:\.|,\s*(?:budget|preferred|style|colors|delivery)|$)/im
+  );
+  const location = locationMatch ? locationMatch[1].trim() : "";
+
+  // Extract budget
+  const budgetMatch = fullText.match(/budget[:\s]*\$?(\d+(?:\.\d{1,2})?)/i);
+  const budget = budgetMatch ? parseFloat(budgetMatch[1]) : 0;
+
+  // Extract preferred retailers
+  const retailerMatch = fullText.match(
+    /(?:preferred retailers|retailers|preferred stores|stores)[:\s]*(.+?)(?:\.|,\s*(?:budget|location|style|colors|delivery)|$)/im
+  );
+  const preferredRetailers = retailerMatch
+    ? retailerMatch[1].split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  // Everything else as preferences context
+  const preferences = fullText;
+
+  return { categories, location, budget, preferences, preferredRetailers };
+}
+
+// ─── STAGE PROMPTS ───
+
 const STAGE_PROMPTS: Record<string, string> = {
   identify: `You are a concise AI shopping assistant. The user will describe their shopping need in one message.
 
@@ -105,55 +212,86 @@ Instructions:
 
 Instructions:
 - Call the request_clarification tool to generate a form for the user to fill in.
-- Include fields for: budget, delivery_by date, preferences (style, team/theme, colors, must_haves, nice_to_haves), and category-specific options.
-- Pre-fill any known values from user input or previous sessions.
-- Return only the tool call JSON: { "title": "...", "fields": [{ "id": "...", "label": "...", "type": "...", "value": "...", "options": [...], "required": true/false }] }
+- ALWAYS include these fields:
+  1. "budget" (type: number, required: true, label: "Budget ($)")
+  2. "delivery_by" (type: text, required: false, label: "Need it by (date)")
+  3. "location" (type: text, required: true, label: "Delivery location (ZIP code or City, State)")
+  4. "preferred_retailers" (type: multiselect, required: false, label: "Preferred retailers", options: ["Any (search everywhere)", "Amazon", "Walmart", "Target", "Shein", "Temu", "AliExpress", "eBay", "Best Buy", "Etsy", "Nordstrom", "Nike", "Adidas"])
+- Also include relevant preference fields: style, team/theme, colors, must_haves, nice_to_haves, and category-specific options.
+- Pre-fill any known values from user input.
+- Return only the tool call JSON.
 - Do not write conversational text outside the tool call.`,
 
-  research: `You are a concise AI shopping assistant with access to a mock product catalog. Use the following catalog exactly as provided (names, prices, variants, retailers, delivery_days). Pick items ONLY from this catalog.
-
-Catalog:
-${CATALOG_JSON}
-
-Instructions:
-1. Build a combined cart selecting items from 2-3 different retailers.
-2. Ensure the total cost does not exceed the user's budget.
-3. Score each complete set using:
-   score = 0.4*(1 - total_cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence
-   - delivery_score: 1.0 if all items arrive by delivery_by, scales down linearly
-   - preference_match: how well items match colors, team/theme, style
-   - style_coherence: how well items look together
-4. Generate:
-   - top_ranked_set: best set of items
-   - alternative_sets: 1-2 alternative sets with explanations
-   - ranking_explanation: why the top set was chosen
-5. Add "replace": true to each item.
-6. Return structured JSON ONLY using the build_cart tool.
-7. Do NOT hallucinate items; use catalog only.`,
+  // research prompt is dynamically built with search results — see buildResearchPrompt()
+  research: "",
 
   review: `You are a concise AI shopping assistant. The user is reviewing their cart.
 
 Instructions:
 - Do NOT rebuild the cart unless the user requests an item replacement, removal, or addition.
 - If the user says the cart looks good or wants to proceed, just respond with a short text reply. Do NOT call build_cart.
-- If the user asks to replace an item, suggest alternatives from the catalog.
-- Return updated combined_cart JSON using the build_cart tool with the same structure as before.
+- If the user asks to replace an item, you will receive fresh search results for alternatives. Pick from those results only.
+- Return updated cart JSON using the build_cart tool with the same structure as before.
 - Keep responses short and friendly.
-
-Product catalog for replacements:
-${CATALOG_JSON}`,
+- The retailer field can be ANY online store name (not limited to Amazon/Walmart/Target).`,
 
   checkout: `You are a concise AI shopping assistant generating a structured checkout simulation.
 
 Instructions:
-- Group items by retailer.
+- Group items by retailer (any retailer name is valid).
 - Include step-by-step checkout instructions per retailer: Name → Address → Payment → Confirm.
 - Include grand_total and retailer-level subtotals.
 - Return structured JSON ONLY using the generate_checkout tool.
 - Do NOT stream free text. Use the structured tool output.`,
 };
 
-// Tool definitions
+/**
+ * Build a dynamic research prompt with injected Firecrawl search results.
+ */
+function buildResearchPrompt(searchContext: string, location: string): string {
+  return `You are a concise AI shopping assistant. Below are REAL product search results from across the internet. Use ONLY these results to build the cart — do NOT make up products or URLs.
+
+SEARCH RESULTS:
+${searchContext}
+
+RANKING CRITERIA (weighted scoring — use these to pick the BEST overall set):
+- 25% Value: price vs budget, active discounts/sales/coupons, price-to-quality ratio
+- 20% Delivery: estimated shipping time to ${location || "user's location"}, shipping cost (free shipping = bonus), delivery reliability
+- 20% Reviews & Reliability: star rating, review count, seller reputation, return policy, brand trust
+- 15% Preference Match: how well items match user's stated colors, style, team/theme, features, must-haves
+- 10% Retailer Trust: established retailer vs unknown/sketchy seller, buyer protection policies
+- 10% Style Coherence: how well items look together as a set
+
+Instructions:
+1. Build a combined cart from the search results above, selecting the best items across ANY retailers.
+2. Ensure the total cost does not exceed the user's budget.
+3. For EACH product include: name, category, retailer (actual site name like "Amazon", "Shein", "Temu", etc.), price, delivery_days (estimated), emoji, url (direct product link), and optionally: rating, review_count, shipping_cost, original_price, discount_label, variant.
+4. Add "replace": true to each item.
+5. Generate 1-2 alternative_sets with different trade-offs (e.g., budget-friendly vs premium, faster delivery vs better reviews).
+6. Provide a detailed ranking_explanation covering WHY this set won — mention specific factors.
+7. Return structured JSON ONLY using the build_cart tool.
+8. Do NOT hallucinate products — use the search results above ONLY.`;
+}
+
+/**
+ * Build a review prompt with fresh search results for item replacement.
+ */
+function buildReviewPromptWithSearch(searchContext: string): string {
+  return `You are a concise AI shopping assistant. The user wants to replace or modify items in their cart.
+
+Below are FRESH search results for alternative products:
+${searchContext}
+
+Instructions:
+- Use the search results above to suggest replacements. Do NOT make up products.
+- Return updated cart JSON using the build_cart tool.
+- Keep all unreplaced items exactly as they were.
+- The retailer field can be ANY online store name.
+- Include url, rating, review_count, shipping_cost, original_price, discount_label where available.`;
+}
+
+// ─── TOOL DEFINITIONS ───
+
 const TOOLS: Record<string, any> = {
   suggest_items: {
     type: "function",
@@ -214,7 +352,7 @@ const TOOLS: Record<string, any> = {
     type: "function",
     function: {
       name: "build_cart",
-      description: "Build a shopping cart with ranked products from the catalog, including ranking explanation and alternatives.",
+      description: "Build a shopping cart with ranked products from real search results, including ranking explanation and alternatives.",
       parameters: {
         type: "object",
         properties: {
@@ -226,19 +364,25 @@ const TOOLS: Record<string, any> = {
               properties: {
                 name: { type: "string" },
                 category: { type: "string" },
-                retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                retailer: { type: "string", description: "The retailer/store name (e.g., Amazon, Shein, Temu, eBay, etc.)" },
                 price: { type: "number" },
                 delivery_days: { type: "number" },
                 emoji: { type: "string" },
                 variant: { type: "string" },
                 replace: { type: "boolean", description: "Whether this item can be replaced" },
+                url: { type: "string", description: "Direct product page URL" },
+                rating: { type: "number", description: "Star rating (e.g. 4.5)" },
+                review_count: { type: "number", description: "Number of reviews" },
+                shipping_cost: { type: "number", description: "Shipping cost (0 = free)" },
+                original_price: { type: "number", description: "Price before discount" },
+                discount_label: { type: "string", description: "e.g. '20% off', 'Buy 2 Get 1'" },
               },
               required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
             },
           },
           total_cost: { type: "number" },
           budget: { type: "number" },
-          ranking_explanation: { type: "string", description: "Why this set was ranked #1" },
+          ranking_explanation: { type: "string", description: "Detailed explanation of why this set was ranked #1" },
           alternative_sets: {
             type: "array",
             items: {
@@ -252,11 +396,17 @@ const TOOLS: Record<string, any> = {
                     properties: {
                       name: { type: "string" },
                       category: { type: "string" },
-                      retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                      retailer: { type: "string" },
                       price: { type: "number" },
                       delivery_days: { type: "number" },
                       emoji: { type: "string" },
                       variant: { type: "string" },
+                      url: { type: "string" },
+                      rating: { type: "number" },
+                      review_count: { type: "number" },
+                      shipping_cost: { type: "number" },
+                      original_price: { type: "number" },
+                      discount_label: { type: "string" },
                     },
                     required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
                   },
@@ -285,7 +435,7 @@ const TOOLS: Record<string, any> = {
             items: {
               type: "object",
               properties: {
-                retailer: { type: "string", enum: ["Amazon", "Walmart", "Target"] },
+                retailer: { type: "string", description: "The retailer/store name" },
                 items: { type: "array", items: { type: "string" }, description: "Item names" },
                 subtotal: { type: "number" },
                 estimated_delivery_days: { type: "number" },
@@ -369,6 +519,7 @@ serve(async (req) => {
     // --- End Input Validation ---
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 
     if (!OPENAI_API_KEY) {
       console.error("OPENAI_API_KEY is not configured");
@@ -378,7 +529,72 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = STAGE_PROMPTS[stage] || STAGE_PROMPTS.identify;
+    // ─── RESEARCH STAGE: Firecrawl search → AI ranking ───
+    let systemPrompt = STAGE_PROMPTS[stage] || STAGE_PROMPTS.identify;
+
+    if (stage === "research") {
+      if (!FIRECRAWL_API_KEY) {
+        console.error("FIRECRAWL_API_KEY is not configured");
+        return new Response(
+          JSON.stringify({ error: "Search API not configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const ctx = extractContextFromMessages(messages);
+      console.log("Extracted context:", JSON.stringify({
+        categories: ctx.categories,
+        location: ctx.location,
+        budget: ctx.budget,
+        preferredRetailers: ctx.preferredRetailers,
+      }));
+
+      if (ctx.categories.length > 0) {
+        const searchContext = await searchAllCategories(
+          ctx.categories,
+          ctx.location,
+          ctx.preferredRetailers,
+          FIRECRAWL_API_KEY
+        );
+        systemPrompt = buildResearchPrompt(searchContext, ctx.location);
+      } else {
+        console.warn("No categories extracted, falling back to basic research prompt");
+        systemPrompt = buildResearchPrompt("No specific product search results available. Ask the user to clarify what items they want.", "");
+      }
+    }
+
+    // ─── REVIEW STAGE: Check if replacement needed → search ───
+    if (stage === "review" && FIRECRAWL_API_KEY) {
+      const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+      const isReplacement = lastUserMsg?.content && /replace|swap|switch|alternative|instead|different/i.test(lastUserMsg.content);
+
+      if (isReplacement) {
+        // Extract what category to search for
+        const replaceMatch = lastUserMsg.content.match(/replace\s+"?([^"]+)"?\s+with/i) ||
+          lastUserMsg.content.match(/replace\s+"?([^"]+)"?/i);
+        const itemToReplace = replaceMatch ? replaceMatch[1].trim() : "";
+        const searchQuery = itemToReplace || "alternative product";
+
+        const ctx = extractContextFromMessages(messages);
+        console.log(`Review replacement search for: "${searchQuery}"`);
+
+        const searchResults = await searchProducts(
+          searchQuery,
+          ctx.location,
+          ctx.preferredRetailers,
+          FIRECRAWL_API_KEY
+        );
+
+        if (searchResults.length > 0) {
+          let searchContext = `\n=== REPLACEMENT OPTIONS for "${itemToReplace}" ===\n`;
+          for (const r of searchResults) {
+            searchContext += `\n--- Product ---\nTitle: ${r.title}\nURL: ${r.url}\nDescription: ${r.description}\nDetails:\n${r.markdown}\n`;
+          }
+          systemPrompt = buildReviewPromptWithSearch(searchContext);
+        }
+      }
+    }
+
     const stageToolNames = STAGE_TOOLS[stage] || [];
     const tools = stageToolNames.map((name) => TOOLS[name]).filter(Boolean);
 
@@ -392,7 +608,6 @@ serve(async (req) => {
       ],
     };
 
-    // All stages now use non-streaming with tool calls
     if (tools.length > 0) {
       requestBody.tools = tools;
       requestBody.tool_choice = "auto";
