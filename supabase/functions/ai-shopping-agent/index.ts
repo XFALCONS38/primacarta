@@ -212,13 +212,19 @@ Instructions:
 
 Instructions:
 - Call the request_clarification tool to generate a form for the user to fill in.
-- ALWAYS include these fields:
+- ALWAYS include these core fields:
   1. "budget" (type: number, required: true, label: "Budget ($)")
   2. "delivery_by" (type: text, required: false, label: "Need it by (date)")
   3. "location" (type: text, required: true, label: "Delivery location (ZIP code or City, State)")
   4. "preferred_retailers" (type: multiselect, required: false, label: "Preferred retailers", options: ["Any (search everywhere)", "Amazon", "Walmart", "Target", "Shein", "Temu", "AliExpress", "eBay", "Best Buy", "Etsy", "Nordstrom", "Nike", "Adidas"])
-- Also include relevant preference fields: style, team/theme, colors, must_haves, nice_to_haves, and category-specific options.
-- Pre-fill any known values from user input.
+- ALWAYS include these buyer characteristic fields (adapt labels/options to the shopping context):
+  5. "age_group" (type: select, required: false, label: "Age group", options: ["Child (2-12)", "Teen (13-17)", "Adult (18-64)", "Senior (65+)"])
+  6. "gender" (type: select, required: false, label: "Gender", options: ["Male", "Female", "Unisex", "Prefer not to say"])
+  7. "size" (type: text, required: false, label: "Size (e.g., S/M/L/XL, shoe size, or measurements)")
+  8. "colors" (type: text, required: false, label: "Preferred colors")
+  9. "style" (type: text, required: false, label: "Style preference (e.g., casual, sporty, formal)")
+- Also include relevant category-specific fields: team/theme, brand preferences, material, must_haves, nice_to_haves.
+- Pre-fill any known values from user input (e.g., if they mentioned a budget or team).
 - Return only the tool call JSON.
 - Do not write conversational text outside the tool call.`,
 
