@@ -300,7 +300,7 @@ export function useChat() {
       contextRef.current.clarificationValues = values;
 
       const details = Object.entries(values)
-        .filter(([, v]) => v.trim())
+        .filter(([, v]) => typeof v === "string" ? v.trim() !== "" : !!v)
         .map(([k, v]) => `${k}: ${v}`)
         .join(", ");
       const userMsg = `Here are my details: ${details}`;
