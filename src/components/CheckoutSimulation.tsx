@@ -51,7 +51,7 @@ export function CheckoutSimulation({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md space-y-4"
+      className="w-full max-w-full space-y-4 overflow-hidden"
     >
       <div className="text-center">
         <h3 className="font-display text-lg font-semibold text-foreground">
