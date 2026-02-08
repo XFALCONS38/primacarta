@@ -439,7 +439,7 @@ export function CartItemExplorer({
             <TabsTrigger
               key={cat}
               value={cat}
-              className="text-xs px-2.5 py-2 data-[state=active]:bg-background whitespace-nowrap shrink-0 min-h-[36px]"
+              className="text-xs px-2.5 py-2 data-[state=active]:bg-background whitespace-nowrap shrink-0 min-h-[44px]"
             >
               {cat}
               <Badge variant="secondary" className="ml-1.5 text-[10px] px-1 py-0 h-4">
