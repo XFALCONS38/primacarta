@@ -425,9 +425,9 @@ serve(async (req) => {
       },
     });
   } catch (e) {
-    console.error("ai-shopping-agent error:", e);
+    console.error("ai-shopping-agent error:", e instanceof Error ? e.message : "Unknown error");
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Service error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
