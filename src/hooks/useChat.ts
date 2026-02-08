@@ -106,7 +106,7 @@ export function useChat() {
 
   /** Handle tool call responses from the edge function */
   const handleToolCallResponse = (
-    data: { type: string; tool: string; data: any; text?: string },
+    data: { type: string; tool: string; data: any; text?: string; searchCandidates?: Record<string, SearchCandidate[]> },
     currentStage: WorkflowStage
   ) => {
     if (data.type === "tool_call") {
