@@ -59,9 +59,9 @@ export function ClarificationForm({ request, onSubmit, disabled }: Clarification
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-full rounded-xl border border-border bg-card p-4 shadow-sm overflow-hidden"
+      className="w-full rounded-xl border border-border bg-card p-3 sm:p-4 shadow-sm overflow-hidden"
     >
-      <h4 className="mb-3 font-display text-sm font-semibold text-foreground">
+      <h4 className="mb-3 font-display text-sm font-semibold text-foreground truncate">
         {request.title}
       </h4>
 
@@ -111,11 +111,11 @@ function FieldRenderer({
   const prefilled = !!field.value;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 overflow-hidden">
       <Label
         htmlFor={field.id}
         className={cn(
-          "text-xs font-medium",
+          "text-xs font-medium truncate block",
           field.required ? "text-foreground" : "text-muted-foreground"
         )}
       >
@@ -132,7 +132,7 @@ function FieldRenderer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className="h-12 rounded-lg text-base sm:text-sm"
+          className="h-11 sm:h-12 rounded-lg text-base sm:text-sm w-full"
           placeholder={`Enter ${field.label.toLowerCase()}`}
           autoComplete="off"
         />
@@ -146,7 +146,7 @@ function FieldRenderer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className="h-12 rounded-lg text-base sm:text-sm"
+          className="h-11 sm:h-12 rounded-lg text-base sm:text-sm w-full"
           placeholder="0"
           autoComplete="off"
         />
@@ -154,7 +154,7 @@ function FieldRenderer({
 
       {field.type === "select" && field.options && (
         <Select value={value} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger className="h-12 rounded-lg text-base sm:text-sm w-full">
+          <SelectTrigger className="h-11 sm:h-12 rounded-lg text-base sm:text-sm w-full">
             <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
           </SelectTrigger>
           <SelectContent>
@@ -168,12 +168,12 @@ function FieldRenderer({
       )}
 
       {field.type === "multiselect" && field.options && (
-        <div className="flex flex-wrap gap-2 pt-0.5">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-0.5">
           {field.options.map((opt) => (
             <label
               key={opt}
               className={cn(
-                "flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors min-h-[44px] active:scale-[0.97]",
+                "flex cursor-pointer items-center gap-1 sm:gap-1.5 rounded-lg border px-2 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs transition-colors min-h-[40px] sm:min-h-[44px] active:scale-[0.97]",
                 selectedMulti.includes(opt)
                   ? "border-primary bg-primary/10 text-foreground"
                   : "border-border bg-background text-muted-foreground hover:border-primary/40"
@@ -183,9 +183,9 @@ function FieldRenderer({
                 checked={selectedMulti.includes(opt)}
                 onCheckedChange={() => onToggleMulti(opt)}
                 disabled={disabled}
-                className="h-3.5 w-3.5"
+                className="h-3 w-3 sm:h-3.5 sm:w-3.5"
               />
-              {opt}
+              <span className="truncate">{opt}</span>
             </label>
           ))}
         </div>

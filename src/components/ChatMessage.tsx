@@ -45,37 +45,59 @@ export function ChatMessageBubble({
 }: ChatMessageProps) {
   const isUser = message.role === "user";
 
+  // Check if this message has interactive (wide) content that needs full width
+  const hasInteractiveContent =
+    !isUser &&
+    (message.checklist?.length ||
+      message.clarificationRequest ||
+      message.cartData ||
+      message.checkoutSteps?.length ||
+      message.checkoutInfo === null ||
+      message.shoppingSpec);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}
+      className={cn("flex gap-2 sm:gap-3", isUser ? "flex-row-reverse" : "flex-row")}
     >
       <div
         className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+          "flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full",
           isUser ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
         )}
       >
-        {isUser ? <User className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+        {isUser ? <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
       </div>
 
-      <div className="max-w-[85%] min-w-0 overflow-hidden space-y-3">
+      <div
+        className={cn(
+          "min-w-0 overflow-hidden space-y-3",
+          // User messages: constrained width bubble
+          // Assistant with interactive content: use all available space
+          // Assistant text-only: constrained width
+          isUser
+            ? "max-w-[80%] sm:max-w-[85%]"
+            : hasInteractiveContent
+              ? "flex-1 max-w-full"
+              : "max-w-[80%] sm:max-w-[85%]"
+        )}
+      >
         {/* Text content */}
         {message.content && (
           <div
             className={cn(
-              "rounded-2xl px-4 py-3 text-sm",
+              "rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 text-sm",
               isUser
                 ? "bg-primary text-primary-foreground rounded-br-md"
                 : "bg-card border border-border rounded-bl-md shadow-sm"
             )}
           >
             {isUser ? (
-              <p>{message.content}</p>
+              <p className="break-words">{message.content}</p>
             ) : (
-              <div className="prose-chat">
+              <div className="prose-chat break-words">
                 <ReactMarkdown>{message.content}</ReactMarkdown>
               </div>
             )}

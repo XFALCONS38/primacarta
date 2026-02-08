@@ -77,10 +77,10 @@ function getRetailerColor(name: string): string {
 function RatingStars({ rating, reviewCount }: { rating?: number; reviewCount?: number }) {
   if (!rating) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+    <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-muted-foreground">
+      <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-yellow-400 text-yellow-400" />
       <span className="font-medium text-foreground">{rating.toFixed(1)}</span>
-      {reviewCount != null && <span>({reviewCount.toLocaleString()})</span>}
+      {reviewCount != null && <span className="hidden sm:inline">({reviewCount.toLocaleString()})</span>}
     </span>
   );
 }
@@ -95,49 +95,49 @@ function CartItemRow({
   onReplaceItem?: (name: string) => void;
 }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
-      <span className="mt-0.5 text-base">{item.emoji}</span>
-      <div className="flex-1 min-w-0 space-y-0.5">
-        <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-start gap-1.5 sm:gap-2 rounded-lg border border-border bg-background px-2 py-2 sm:px-3 sm:py-2.5 text-xs sm:text-sm overflow-hidden">
+      <span className="mt-0.5 text-sm sm:text-base shrink-0">{item.emoji}</span>
+      <div className="flex-1 min-w-0 space-y-0.5 overflow-hidden">
+        <div className="flex items-center gap-1 flex-wrap min-w-0">
           {item.url ? (
             <a
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-foreground hover:text-primary hover:underline inline-flex items-center gap-1 break-words"
+              className="font-medium text-foreground hover:text-primary hover:underline inline-flex items-center gap-0.5 min-w-0 truncate"
             >
-              {item.name}
-              <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
+              <span className="truncate">{item.name}</span>
+              <ExternalLink className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 opacity-50" />
             </a>
           ) : (
-            <p className="font-medium text-foreground break-words">{item.name}</p>
+            <p className="font-medium text-foreground truncate min-w-0">{item.name}</p>
           )}
           {item.reason && (
             <Popover>
               <PopoverTrigger asChild>
-                <button className="shrink-0 text-muted-foreground hover:text-primary p-1 min-w-[28px] min-h-[28px] flex items-center justify-center">
-                  <Info className="h-3.5 w-3.5" />
+                <button className="shrink-0 text-muted-foreground hover:text-primary p-0.5 min-w-[24px] min-h-[24px] sm:min-w-[28px] sm:min-h-[28px] flex items-center justify-center">
+                  <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" className="max-w-[250px] text-xs p-3">
+              <PopoverContent side="top" className="max-w-[220px] sm:max-w-[250px] text-[11px] sm:text-xs p-2.5 sm:p-3">
                 {item.reason}
               </PopoverContent>
             </Popover>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-x-1.5 sm:gap-x-2 gap-y-0.5 text-[10px] sm:text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-0.5 sm:gap-1">
             <span
               className={cn(
-                "inline-block h-2 w-2 rounded-full",
+                "inline-block h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full shrink-0",
                 getRetailerColor(item.retailer)
               )}
             />
-            {item.retailer}
+            <span className="truncate max-w-[60px] sm:max-w-none">{item.retailer}</span>
           </span>
           <span>•</span>
           <span className="inline-flex items-center gap-0.5">
-            <Truck className="h-3 w-3" />
+            <Truck className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
             {item.delivery_days}d
           </span>
           {item.shipping_cost != null && (
@@ -149,42 +149,36 @@ function CartItemRow({
                 )}
               >
                 {item.shipping_cost === 0
-                  ? "Free shipping"
-                  : `+$${item.shipping_cost.toFixed(2)} ship`}
+                  ? "Free"
+                  : `+$${item.shipping_cost.toFixed(2)}`}
               </span>
             </>
           )}
-          {item.variant && (
-            <>
-              <span>•</span>
-              <span>{item.variant}</span>
-            </>
-          )}
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <div className="flex flex-wrap items-center gap-x-1.5 sm:gap-x-2 gap-y-0.5">
           <RatingStars rating={item.rating} reviewCount={item.review_count} />
           {item.discount_label && (
-            <span className="inline-flex items-center gap-0.5 rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
-              <Tag className="h-2.5 w-2.5" />
+            <span className="inline-flex items-center gap-0.5 rounded-md bg-destructive/10 px-1 py-0.5 text-[9px] sm:text-[10px] font-medium text-destructive">
+              <Tag className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
               {item.discount_label}
             </span>
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1 shrink-0">
-        <span className="font-medium text-foreground">${item.price.toFixed(2)}</span>
+      <div className="flex flex-col items-end gap-0.5 sm:gap-1 shrink-0">
+        <span className="font-medium text-foreground text-xs sm:text-sm">${item.price.toFixed(2)}</span>
         {item.original_price && item.original_price > item.price && (
-          <span className="text-[10px] text-muted-foreground line-through">
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground line-through">
             ${item.original_price.toFixed(2)}
           </span>
         )}
         {isLatest && item.replace !== false && onReplaceItem && (
           <button
             onClick={() => onReplaceItem(item.name)}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-w-[32px] min-h-[32px] flex items-center justify-center"
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-w-[28px] min-h-[28px] sm:min-w-[32px] sm:min-h-[32px] flex items-center justify-center"
             title="Replace this item"
           >
-            <ArrowRightLeft className="h-3.5 w-3.5" />
+            <ArrowRightLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           </button>
         )}
       </div>
@@ -204,39 +198,38 @@ function AlternativeItemRow({
   onSwapItem?: (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 text-xs group flex-wrap sm:flex-nowrap">
-      <span>{item.emoji}</span>
-      <span className="flex-1 min-w-0 text-muted-foreground break-words sm:truncate">
+    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs group overflow-hidden">
+      <span className="shrink-0">{item.emoji}</span>
+      <span className="flex-1 min-w-0 text-muted-foreground truncate">
         {item.url ? (
           <a
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-primary hover:underline inline-flex items-center gap-0.5"
+            className="hover:text-primary hover:underline inline-flex items-center gap-0.5 min-w-0"
           >
-            {item.name}
-            <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-40" />
+            <span className="truncate">{item.name}</span>
+            <ExternalLink className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0 opacity-40" />
           </a>
         ) : (
-          item.name
+          <span className="truncate">{item.name}</span>
         )}
       </span>
-      <RatingStars rating={item.rating} reviewCount={item.review_count} />
       <span
         className={cn(
           "inline-block h-1.5 w-1.5 rounded-full shrink-0",
           getRetailerColor(item.retailer)
         )}
       />
-      <span className="text-muted-foreground shrink-0">{item.retailer}</span>
+      <span className="text-muted-foreground shrink-0 hidden sm:inline">{item.retailer}</span>
       <span className="text-foreground font-medium shrink-0">${item.price.toFixed(2)}</span>
       {isLatest && mainCartItem && onSwapItem && (
         <button
           onClick={() => onSwapItem(mainCartItem, item)}
-          className="touch-visible rounded-md p-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary min-w-[28px] min-h-[28px] flex items-center justify-center"
+          className="touch-visible rounded-md p-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary min-w-[24px] min-h-[24px] sm:min-w-[28px] sm:min-h-[28px] flex items-center justify-center shrink-0"
           title={`Swap "${mainCartItem.name}" with "${item.name}"`}
         >
-          <ArrowRight className="h-3.5 w-3.5" />
+          <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
         </button>
       )}
     </div>
@@ -262,31 +255,31 @@ export function CartRecommendationCard({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-full space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm overflow-hidden"
+      className="w-full space-y-2 sm:space-y-3 rounded-xl border border-border bg-card p-3 sm:p-4 shadow-sm overflow-hidden"
     >
       <div className="flex items-center gap-2">
-        <ShoppingCart className="h-4 w-4 text-primary" />
+        <ShoppingCart className="h-4 w-4 text-primary shrink-0" />
         <h4 className="font-display text-sm font-semibold text-foreground">Your Cart</h4>
       </div>
 
-      {cart.summary && <p className="text-xs text-muted-foreground">{cart.summary}</p>}
+      {cart.summary && <p className="text-[10px] sm:text-xs text-muted-foreground break-words">{cart.summary}</p>}
 
       {cart.rankingExplanation && (
         <Collapsible open={showExplanation} onOpenChange={setShowExplanation}>
           <CollapsibleTrigger asChild>
-            <button className="flex w-full items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 min-h-[44px]">
-              <Lightbulb className="h-3.5 w-3.5" />
-              <span>Why this set?</span>
+            <button className="flex w-full items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2 sm:px-3 sm:py-2.5 text-[11px] sm:text-xs font-medium text-primary transition-colors hover:bg-primary/10 min-h-[44px]">
+              <Lightbulb className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Why this set?</span>
               <ChevronDown
                 className={cn(
-                  "ml-auto h-3.5 w-3.5 transition-transform",
+                  "ml-auto h-3.5 w-3.5 shrink-0 transition-transform",
                   showExplanation && "rotate-180"
                 )}
               />
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <p className="mt-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+            <p className="mt-2 rounded-lg bg-muted/50 px-2.5 py-2 sm:px-3 text-[11px] sm:text-xs text-muted-foreground leading-relaxed break-words">
               {cart.rankingExplanation}
             </p>
           </CollapsibleContent>
@@ -301,7 +294,7 @@ export function CartRecommendationCard({
 
       {/* Budget bar */}
       <div className="space-y-1">
-        <div className="flex justify-between text-xs">
+        <div className="flex justify-between text-[10px] sm:text-xs">
           <span className="text-muted-foreground">
             Total:{" "}
             <span className="font-semibold text-foreground">${cart.totalCost.toFixed(2)}</span>
@@ -317,7 +310,7 @@ export function CartRecommendationCard({
               : `$${Math.abs(remaining).toFixed(2)} over`}
           </span>
         </div>
-        <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div className="h-1.5 sm:h-2 rounded-full bg-muted overflow-hidden">
           <div
             className={cn(
               "h-full rounded-full transition-all",
@@ -326,7 +319,7 @@ export function CartRecommendationCard({
             style={{ width: `${pct}%` }}
           />
         </div>
-        <p className="text-right text-[10px] text-muted-foreground">
+        <p className="text-right text-[9px] sm:text-[10px] text-muted-foreground">
           Budget: ${cart.budget.toFixed(2)}
         </p>
       </div>
@@ -334,22 +327,22 @@ export function CartRecommendationCard({
       {cart.alternativeSets && cart.alternativeSets.length > 0 && (
         <Collapsible open={showAlternatives} onOpenChange={setShowAlternatives}>
           <CollapsibleTrigger asChild>
-            <button className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 min-h-[44px]">
-              <ArrowRightLeft className="h-3.5 w-3.5" />
-              <span>
+            <button className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-2.5 py-2 sm:px-3 sm:py-2.5 text-[11px] sm:text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 min-h-[44px]">
+              <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">
                 {cart.alternativeSets.length} alternative set
                 {cart.alternativeSets.length > 1 ? "s" : ""}
               </span>
               <ChevronDown
                 className={cn(
-                  "ml-auto h-3.5 w-3.5 transition-transform",
+                  "ml-auto h-3.5 w-3.5 shrink-0 transition-transform",
                   showAlternatives && "rotate-180"
                 )}
               />
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="mt-2 space-y-3">
+            <div className="mt-2 space-y-2 sm:space-y-3">
               {cart.alternativeSets.map((alt, ai) => (
                 <AlternativeSetCard
                   key={ai}
@@ -373,16 +366,16 @@ export function CartRecommendationCard({
 
       {isLatest && (
         <div className="space-y-2">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
             {onOptimizeBudget && (
               <Button
                 onClick={onOptimizeBudget}
                 variant="outline"
                 size="sm"
-                className="rounded-xl text-xs h-12"
+                className="rounded-xl text-[10px] sm:text-xs h-10 sm:h-12 px-2 sm:px-4"
               >
-                <DollarSign className="mr-1 h-3 w-3" />
-                Optimize Budget
+                <DollarSign className="mr-0.5 sm:mr-1 h-3 w-3" />
+                Budget
               </Button>
             )}
             {onOptimizeDelivery && (
@@ -390,15 +383,15 @@ export function CartRecommendationCard({
                 onClick={onOptimizeDelivery}
                 variant="outline"
                 size="sm"
-                className="rounded-xl text-xs h-12"
+                className="rounded-xl text-[10px] sm:text-xs h-10 sm:h-12 px-2 sm:px-4"
               >
-                <Clock className="mr-1 h-3 w-3" />
-                Optimize Delivery
+                <Clock className="mr-0.5 sm:mr-1 h-3 w-3" />
+                Delivery
               </Button>
             )}
           </div>
           {onCheckout && (
-            <Button onClick={onCheckout} className="w-full rounded-xl font-medium" size="sm">
+            <Button onClick={onCheckout} className="w-full rounded-xl font-medium min-h-[44px]" size="sm">
               <CreditCard className="mr-2 h-4 w-4" />
               Confirm & Checkout
             </Button>
@@ -433,14 +426,14 @@ function AlternativeSetCard({
   };
 
   return (
-    <div className="rounded-lg border border-border bg-background p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <h5 className="text-xs font-semibold text-foreground">{alt.set_name}</h5>
-        <span className="text-xs font-medium text-muted-foreground">
+    <div className="rounded-lg border border-border bg-background p-2.5 sm:p-3 space-y-1.5 sm:space-y-2 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <h5 className="text-[11px] sm:text-xs font-semibold text-foreground truncate">{alt.set_name}</h5>
+        <span className="text-[11px] sm:text-xs font-medium text-muted-foreground shrink-0">
           ${totalCost.toFixed(2)}
         </span>
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-1 sm:space-y-1.5">
         {alt.items.map((item, i) => (
           <AlternativeItemRow
             key={i}
@@ -451,7 +444,7 @@ function AlternativeSetCard({
           />
         ))}
       </div>
-      <p className="text-[11px] text-muted-foreground italic leading-relaxed">
+      <p className="text-[10px] sm:text-[11px] text-muted-foreground italic leading-relaxed break-words">
         {alt.ranking_explanation}
       </p>
       {isLatest && onSelectSet && (
@@ -459,10 +452,10 @@ function AlternativeSetCard({
           onClick={() => onSelectSet(alt)}
           variant="outline"
           size="sm"
-          className="w-full rounded-lg text-xs h-9"
+          className="w-full rounded-lg text-[10px] sm:text-xs h-8 sm:h-9"
         >
-          <CheckCircle2 className="mr-1.5 h-3 w-3" />
-          Use this set instead
+          <CheckCircle2 className="mr-1 sm:mr-1.5 h-3 w-3" />
+          Use this set
         </Button>
       )}
     </div>
