@@ -10,6 +10,8 @@ import {
   ExternalLink,
   Truck,
   Tag,
+  CheckCircle2,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +30,8 @@ interface CartRecommendationProps {
   cart: CartRecommendationType;
   onCheckout?: () => void;
   onReplaceItem?: (itemName: string) => void;
+  onSelectAlternativeSet?: (alt: AlternativeSet) => void;
+  onSwapItem?: (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => void;
   isLatest?: boolean;
 }
 
@@ -46,7 +50,6 @@ const RETAILER_PALETTE = [
 ];
 
 function getRetailerColor(name: string): string {
-  // Known retailers get specific colors
   const knownColors: Record<string, string> = {
     Amazon: "bg-[hsl(var(--amazon,35,100%,50%))]",
     Walmart: "bg-[hsl(var(--walmart,210,100%,40%))]",
@@ -54,7 +57,6 @@ function getRetailerColor(name: string): string {
   };
   if (knownColors[name]) return knownColors[name];
 
-  // Hash the name to pick a consistent color
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -166,10 +168,66 @@ function CartItemRow({
   );
 }
 
+/** Compact item row used inside alternative set cards, with optional swap button */
+function AlternativeItemRow({
+  item,
+  mainCartItem,
+  isLatest,
+  onSwapItem,
+}: {
+  item: CartRecommendationItem;
+  mainCartItem?: CartRecommendationItem;
+  isLatest?: boolean;
+  onSwapItem?: (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 text-xs group">
+      <span>{item.emoji}</span>
+      <span className="flex-1 min-w-0 truncate text-muted-foreground">
+        {item.url ? (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary hover:underline inline-flex items-center gap-0.5"
+          >
+            {item.name}
+            <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-40" />
+          </a>
+        ) : (
+          item.name
+        )}
+      </span>
+      <RatingStars rating={item.rating} reviewCount={item.review_count} />
+      <span
+        className={cn(
+          "inline-block h-1.5 w-1.5 rounded-full shrink-0",
+          getRetailerColor(item.retailer)
+        )}
+      />
+      <span className="text-muted-foreground shrink-0">{item.retailer}</span>
+      <span className="text-foreground font-medium shrink-0">
+        ${item.price.toFixed(2)}
+      </span>
+      {isLatest && mainCartItem && onSwapItem && (
+        <button
+          onClick={() => onSwapItem(mainCartItem, item)}
+          className="rounded-md p-0.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary"
+          title={`Swap "${mainCartItem.name}" with "${item.name}"`}
+        >
+          <ArrowRight className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function CartRecommendationCard({
   cart,
   onCheckout,
   onReplaceItem,
+  onSelectAlternativeSet,
+  onSwapItem,
   isLatest,
 }: CartRecommendationProps) {
   const remaining = cart.budget - cart.totalCost;
@@ -289,7 +347,14 @@ export function CartRecommendationCard({
           <CollapsibleContent>
             <div className="mt-2 space-y-3">
               {cart.alternativeSets.map((alt, ai) => (
-                <AlternativeSetCard key={ai} alt={alt} />
+                <AlternativeSetCard
+                  key={ai}
+                  alt={alt}
+                  mainCartItems={cart.items}
+                  isLatest={isLatest}
+                  onSelectSet={onSelectAlternativeSet}
+                  onSwapItem={onSwapItem}
+                />
               ))}
             </div>
           </CollapsibleContent>
@@ -311,8 +376,28 @@ export function CartRecommendationCard({
   );
 }
 
-function AlternativeSetCard({ alt }: { alt: AlternativeSet }) {
+function AlternativeSetCard({
+  alt,
+  mainCartItems,
+  isLatest,
+  onSelectSet,
+  onSwapItem,
+}: {
+  alt: AlternativeSet;
+  mainCartItems: CartRecommendationItem[];
+  isLatest?: boolean;
+  onSelectSet?: (alt: AlternativeSet) => void;
+  onSwapItem?: (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => void;
+}) {
   const totalCost = alt.items.reduce((sum, item) => sum + item.price, 0);
+
+  // Try to match alternative items to main cart items by category
+  const findMainCartMatch = (altItem: CartRecommendationItem): CartRecommendationItem | undefined => {
+    return mainCartItems.find(
+      (mainItem) =>
+        mainItem.category?.toLowerCase() === altItem.category?.toLowerCase()
+    );
+  };
 
   return (
     <div className="rounded-lg border border-border bg-background p-3 space-y-2">
@@ -324,40 +409,31 @@ function AlternativeSetCard({ alt }: { alt: AlternativeSet }) {
           ${totalCost.toFixed(2)}
         </span>
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {alt.items.map((item, i) => (
-          <div key={i} className="flex items-center gap-2 text-xs">
-            <span>{item.emoji}</span>
-            <span className="flex-1 truncate text-muted-foreground">
-              {item.url ? (
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-primary hover:underline"
-                >
-                  {item.name}
-                </a>
-              ) : (
-                item.name
-              )}
-            </span>
-            <span
-              className={cn(
-                "inline-block h-1.5 w-1.5 rounded-full",
-                getRetailerColor(item.retailer)
-              )}
-            />
-            <span className="text-muted-foreground">{item.retailer}</span>
-            <span className="text-foreground font-medium">
-              ${item.price.toFixed(2)}
-            </span>
-          </div>
+          <AlternativeItemRow
+            key={i}
+            item={item}
+            mainCartItem={findMainCartMatch(item)}
+            isLatest={isLatest}
+            onSwapItem={onSwapItem}
+          />
         ))}
       </div>
       <p className="text-[11px] text-muted-foreground italic leading-relaxed">
         {alt.ranking_explanation}
       </p>
+      {isLatest && onSelectSet && (
+        <Button
+          onClick={() => onSelectSet(alt)}
+          variant="outline"
+          size="sm"
+          className="w-full rounded-lg text-xs h-7"
+        >
+          <CheckCircle2 className="mr-1.5 h-3 w-3" />
+          Use this set instead
+        </Button>
+      )}
     </div>
   );
 }

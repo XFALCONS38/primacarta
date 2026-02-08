@@ -4,7 +4,9 @@ import type {
   ChecklistItem,
   ClarificationRequest,
   CartRecommendation,
+  CartRecommendationItem,
   CheckoutStep,
+  AlternativeSet,
 } from "@/types/chat";
 import type { WorkflowStage } from "@/config/agentStages";
 
