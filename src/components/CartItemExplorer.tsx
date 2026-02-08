@@ -174,7 +174,7 @@ function ItemDetailCard({
     <div className="rounded-lg border border-border bg-background overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors min-h-[48px]"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors min-h-[48px] active:scale-[0.98]"
       >
         <span
           className={cn(
