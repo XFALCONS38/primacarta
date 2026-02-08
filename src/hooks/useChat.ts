@@ -31,9 +31,7 @@ export function useChat() {
     targetStage: WorkflowStage,
     signal?: AbortSignal
   ) => {
-    // Get the current user's JWT for authenticated requests
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const token = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
     const resp = await fetch(CHAT_URL, {
       method: "POST",
