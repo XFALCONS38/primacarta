@@ -9,6 +9,7 @@ import type {
   AlternativeSet,
   CheckoutInfo,
   ShoppingSpec,
+  SearchCandidate,
 } from "@/types/chat";
 import type { WorkflowStage } from "@/config/agentStages";
 
