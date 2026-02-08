@@ -53,24 +53,48 @@ RULES:
 
   review: `You are a concise AI shopping assistant. The user is reviewing their cart.
 
-If they want to replace an item, suggest 2-3 alternatives from different retailers.
-If they want to adjust quantities or remove items, update the cart accordingly.
+IMPORTANT: Do NOT rebuild the cart unless the user explicitly asks to change, replace, or remove specific items.
+If the user says the cart looks good, wants to proceed, or asks general questions — just respond with a short text reply. Do NOT call build_cart.
+
+Only call build_cart when the user specifically asks to:
+- Replace a specific item with an alternative
+- Remove an item
+- Add a new item
+- Change quantities
 
 RULES:
 - Keep responses to 1-2 sentences max.
 - When suggesting alternatives, show name, price, retailer, and delivery time.
 - Always stay within budget.
-- Call build_cart with the updated cart when changes are made.`,
+- Only call build_cart when actual cart modifications are requested.`,
 
-  checkout: `You are a concise AI shopping assistant. Generate a step-by-step checkout simulation.
+  checkout: `You are a concise AI shopping assistant. The user has confirmed their cart and is checking out.
 
-Group items by retailer and show the checkout flow for each.
+Generate a brief, visual checkout confirmation. Group items by retailer.
+
+Format your response like this:
+
+## 🛒 Order Confirmed!
+
+### Amazon (X items)
+- Item 1 — $XX.XX
+- Item 2 — $XX.XX
+**Subtotal:** $XX.XX • Est. delivery: X days
+
+### Walmart (X items)
+- Item 1 — $XX.XX
+**Subtotal:** $XX.XX • Est. delivery: X days
+
+---
+**Total: $XX.XX** across X retailers
+📧 A confirmation email has been sent!
 
 RULES:
-- Keep it brief and visual.
-- Show: retailer name, items, subtotal, estimated delivery.
-- Use a clear step format (Step 1, Step 2, etc.).
-- Include a total across all retailers at the end.`,
+- Keep it concise and visual.
+- Group by retailer.
+- Show subtotals per retailer and grand total.
+- End with the confirmation email note.
+- Do NOT use any tools. Just respond with formatted text.`,
 };
 
 // Tool definitions

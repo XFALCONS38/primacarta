@@ -11,6 +11,7 @@ interface ChatMessageProps {
   message: ChatMessageType;
   onChecklistSubmit?: (items: ChecklistItem[]) => void;
   onClarificationSubmit?: (values: Record<string, string>) => void;
+  onCheckout?: () => void;
   isLatest?: boolean;
 }
 
@@ -18,6 +19,7 @@ export function ChatMessageBubble({
   message,
   onChecklistSubmit,
   onClarificationSubmit,
+  onCheckout,
   isLatest,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
@@ -79,7 +81,11 @@ export function ChatMessageBubble({
 
         {/* Cart recommendation UI */}
         {message.cartData && (
-          <CartRecommendationCard cart={message.cartData} />
+          <CartRecommendationCard
+            cart={message.cartData}
+            onCheckout={onCheckout}
+            isLatest={isLatest}
+          />
         )}
       </div>
     </motion.div>

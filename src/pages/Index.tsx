@@ -20,6 +20,7 @@ const Index = () => {
     sendMessage,
     submitChecklist,
     submitClarification,
+    confirmCheckout,
     cancelStream,
     clearMessages,
   } = useChat();
@@ -213,6 +214,7 @@ const Index = () => {
                 message={msg}
                 onChecklistSubmit={submitChecklist}
                 onClarificationSubmit={submitClarification}
+                onCheckout={confirmCheckout}
                 isLatest={i === messages.length - 1}
               />
             ))}
