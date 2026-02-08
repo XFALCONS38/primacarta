@@ -368,6 +368,38 @@ function fixItemUrls(items: any[], allResults: ProductSearchResult[]): any[] {
   });
 }
 
+/**
+ * Fix items with $0 price by looking up the price from search candidates.
+ */
+function fixZeroPrices(items: any[], candidates: Record<string, SearchCandidate[]>): any[] {
+  return items.map((item) => {
+    if (item.price > 0) return item;
+
+    // Try to find a price from search candidates by matching name
+    const allCandidates = Object.values(candidates).flat();
+    let bestMatch: SearchCandidate | null = null;
+    let bestScore = 0;
+
+    for (const c of allCandidates) {
+      if (c.price && c.price > 0) {
+        const score = similarity(item.name || "", c.name);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = c;
+        }
+      }
+    }
+
+    if (bestMatch && bestScore >= 0.15 && bestMatch.price) {
+      console.log(`Price fix: "${item.name}" $0 → $${bestMatch.price} (from candidate "${bestMatch.name}", score: ${bestScore.toFixed(2)})`);
+      return { ...item, price: bestMatch.price };
+    }
+
+    console.warn(`Cannot fix $0 price for "${item.name}" — will be filtered`);
+    return item;
+  });
+}
+
 // ─── STAGE PROMPTS ───
 
 const STAGE_PROMPTS: Record<string, string> = {
