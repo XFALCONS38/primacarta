@@ -12,7 +12,6 @@ import { StageIndicator } from "@/components/StageIndicator";
 import { useChat } from "@/hooks/useChat";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type { ShoppingSession } from "@/types/chat";
-
 const Index = () => {
   const {
     messages,
@@ -29,20 +28,22 @@ const Index = () => {
     selectAlternativeSet,
     swapAlternativeItem,
     cancelStream,
-    clearMessages,
+    clearMessages
   } = useChat();
-  const { sessions, saveSession, deleteSession } = useLocalStorage();
+  const {
+    sessions,
+    saveSession,
+    deleteSession
+  } = useLocalStorage();
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
-
   useEffect(() => {
     if (messages.length > 0) {
       const session: ShoppingSession = {
@@ -51,25 +52,21 @@ const Index = () => {
         messages,
         stage,
         createdAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: new Date()
       };
       if (!activeSessionId) setActiveSessionId(session.id);
       saveSession(session);
     }
   }, [messages]);
-
   const handleStartShopping = () => setShowChat(true);
-
   const handleExampleSelect = (prompt: string) => {
     setShowChat(true);
     setTimeout(() => sendMessage(prompt), 100);
   };
-
   const handleNewSession = () => {
     clearMessages();
     setActiveSessionId(null);
   };
-
   const handleSelectSession = (session: ShoppingSession) => {
     setActiveSessionId(session.id);
     clearMessages();
@@ -78,38 +75,39 @@ const Index = () => {
 
   // Show search progress during research stage
   const showSearchProgress = isLoading && stage === "research";
-  const showTypingIndicator =
-    isLoading &&
-    !showSearchProgress &&
-    messages[messages.length - 1]?.role !== "assistant";
+  const showTypingIndicator = isLoading && !showSearchProgress && messages[messages.length - 1]?.role !== "assistant";
 
   // Landing page
   if (!showChat) {
-    return (
-      <div className="flex min-h-screen flex-col bg-background">
+    return <div className="flex min-h-screen flex-col bg-background">
         {/* Hero */}
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-3xl space-y-10 text-center"
-          >
+          <motion.div initial={{
+          opacity: 0,
+          y: 20
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          duration: 0.5
+        }} className="w-full max-w-3xl space-y-10 text-center">
             <div className="space-y-4">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
-                className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10"
-              >
+              <motion.div initial={{
+              scale: 0.8,
+              opacity: 0
+            }} animate={{
+              scale: 1,
+              opacity: 1
+            }} transition={{
+              delay: 0.1,
+              duration: 0.4
+            }} className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
                 <ShoppingCart className="h-8 w-8 text-primary" />
               </motion.div>
               <h1 className="font-display text-5xl font-bold tracking-tight sm:text-6xl text-foreground">
                 Prima
               </h1>
-              <p className="mx-auto max-w-lg text-xl text-muted-foreground">
-                Describe it. We cart it.
-              </p>
+              <p className="mx-auto max-w-lg text-xl text-muted-foreground">Shopping......Made easy. </p>
               <p className="mx-auto max-w-md text-sm text-muted-foreground/80">
                 Tell Prima what you need — we search 50+ retailers, rank by
                 value, delivery & reviews, and handle checkout across every store.
@@ -118,50 +116,56 @@ const Index = () => {
 
             {/* How it works */}
             <div className="grid grid-cols-3 gap-4 sm:gap-6 mx-auto max-w-lg">
-              {[
-                { icon: Search, label: "Describe", desc: "Tell us what you need" },
-                { icon: BarChart3, label: "We Rank", desc: "50+ stores compared" },
-                { icon: CreditCard, label: "One Checkout", desc: "We handle the rest" },
-              ].map((step, i) => (
-                <motion.div
-                  key={step.label}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + i * 0.1 }}
-                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4"
-                >
+              {[{
+              icon: Search,
+              label: "Describe",
+              desc: "Tell us what you need"
+            }, {
+              icon: BarChart3,
+              label: "We Rank",
+              desc: "50+ stores compared"
+            }, {
+              icon: CreditCard,
+              label: "One Checkout",
+              desc: "We handle the rest"
+            }].map((step, i) => <motion.div key={step.label} initial={{
+              opacity: 0,
+              y: 15
+            }} animate={{
+              opacity: 1,
+              y: 0
+            }} transition={{
+              delay: 0.2 + i * 0.1
+            }} className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                     <step.icon className="h-5 w-5 text-primary" />
                   </div>
                   <p className="font-display text-sm font-semibold">{step.label}</p>
                   <p className="text-[11px] text-muted-foreground">{step.desc}</p>
-                </motion.div>
-              ))}
+                </motion.div>)}
             </div>
 
             {/* Value props */}
             <div className="flex flex-wrap justify-center gap-3">
-              {[
-                { icon: Zap, text: "Real-time prices" },
-                { icon: ShoppingCart, text: "Multi-retailer cart" },
-                { icon: BarChart3, text: "Transparent ranking" },
-                { icon: CreditCard, text: "One checkout" },
-              ].map((prop) => (
-                <span
-                  key={prop.text}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground"
-                >
+              {[{
+              icon: Zap,
+              text: "Real-time prices"
+            }, {
+              icon: ShoppingCart,
+              text: "Multi-retailer cart"
+            }, {
+              icon: BarChart3,
+              text: "Transparent ranking"
+            }, {
+              icon: CreditCard,
+              text: "One checkout"
+            }].map(prop => <span key={prop.text} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
                   <prop.icon className="h-3 w-3 text-primary" />
                   {prop.text}
-                </span>
-              ))}
+                </span>)}
             </div>
 
-            <Button
-              size="lg"
-              onClick={handleStartShopping}
-              className="rounded-xl px-8 font-display text-base"
-            >
+            <Button size="lg" onClick={handleStartShopping} className="rounded-xl px-8 font-display text-base">
               <ShoppingCart className="mr-2 h-5 w-5" />
               Start Shopping
             </Button>
@@ -173,67 +177,37 @@ const Index = () => {
               <ExamplePrompts onSelect={handleExampleSelect} />
             </div>
 
-            {sessions.length > 0 && (
-              <div className="pt-4">
+            {sessions.length > 0 && <div className="pt-4">
                 <p className="text-sm text-muted-foreground">
                   You have {sessions.length} recent session
                   {sessions.length > 1 ? "s" : ""}
                 </p>
-                <Button
-                  variant="link"
-                  onClick={() => {
-                    setShowChat(true);
-                    setShowSidebar(true);
-                  }}
-                  className="text-sm"
-                >
+                <Button variant="link" onClick={() => {
+              setShowChat(true);
+              setShowSidebar(true);
+            }} className="text-sm">
                   View history →
                 </Button>
-              </div>
-            )}
+              </div>}
           </motion.div>
         </div>
-      </div>
-    );
+      </div>;
   }
 
   // Chat interface
-  return (
-    <div className="flex h-screen bg-background">
+  return <div className="flex h-screen bg-background">
       {/* Mobile sidebar toggle */}
-      <button
-        onClick={() => setShowSidebar(!showSidebar)}
-        className="fixed left-3 top-3 z-50 rounded-lg border border-border bg-card p-2 shadow-sm md:hidden"
-      >
-        {showSidebar ? (
-          <X className="h-4 w-4" />
-        ) : (
-          <Menu className="h-4 w-4" />
-        )}
+      <button onClick={() => setShowSidebar(!showSidebar)} className="fixed left-3 top-3 z-50 rounded-lg border border-border bg-card p-2 shadow-sm md:hidden">
+        {showSidebar ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
       </button>
 
       {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border bg-card transition-transform md:relative md:translate-x-0 ${
-          showSidebar ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <SessionHistory
-          sessions={sessions}
-          activeSessionId={activeSessionId || undefined}
-          onSelect={handleSelectSession}
-          onDelete={deleteSession}
-          onNew={handleNewSession}
-        />
+      <div className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border bg-card transition-transform md:relative md:translate-x-0 ${showSidebar ? "translate-x-0" : "-translate-x-full"}`}>
+        <SessionHistory sessions={sessions} activeSessionId={activeSessionId || undefined} onSelect={handleSelectSession} onDelete={deleteSession} onNew={handleNewSession} />
       </div>
 
       {/* Overlay */}
-      {showSidebar && (
-        <div
-          className="fixed inset-0 z-30 bg-foreground/20 md:hidden"
-          onClick={() => setShowSidebar(false)}
-        />
-      )}
+      {showSidebar && <div className="fixed inset-0 z-30 bg-foreground/20 md:hidden" onClick={() => setShowSidebar(false)} />}
 
       {/* Main chat area */}
       <div className="flex flex-1 flex-col">
@@ -254,13 +228,9 @@ const Index = () => {
         </header>
 
         {/* Messages */}
-        <div
-          ref={scrollRef}
-          className="chat-scroll flex-1 overflow-y-auto p-4 md:p-6"
-        >
+        <div ref={scrollRef} className="chat-scroll flex-1 overflow-y-auto p-4 md:p-6">
           <div className="mx-auto max-w-2xl space-y-4">
-            {messages.length === 0 && (
-              <div className="space-y-6 py-8">
+            {messages.length === 0 && <div className="space-y-6 py-8">
                 <div className="text-center">
                   <h3 className="font-display text-lg font-semibold">
                     What are you shopping for?
@@ -271,27 +241,9 @@ const Index = () => {
                   </p>
                 </div>
                 <ExamplePrompts onSelect={sendMessage} />
-              </div>
-            )}
+              </div>}
 
-            {messages.map((msg, i) => (
-              <ChatMessageBubble
-                key={msg.id}
-                message={msg}
-                onChecklistSubmit={submitChecklist}
-                onClarificationSubmit={submitClarification}
-                onCheckout={confirmCheckout}
-                onCheckoutFormSubmit={submitCheckoutForm}
-                onReplaceItem={(name) =>
-                  sendMessage(`Replace "${name}" with an alternative`)
-                }
-                onSelectAlternativeSet={selectAlternativeSet}
-                onSwapItem={swapAlternativeItem}
-                onOptimizeBudget={optimizeBudget}
-                onOptimizeDelivery={optimizeDelivery}
-                isLatest={i === messages.length - 1}
-              />
-            ))}
+            {messages.map((msg, i) => <ChatMessageBubble key={msg.id} message={msg} onChecklistSubmit={submitChecklist} onClarificationSubmit={submitClarification} onCheckout={confirmCheckout} onCheckoutFormSubmit={submitCheckoutForm} onReplaceItem={name => sendMessage(`Replace "${name}" with an alternative`)} onSelectAlternativeSet={selectAlternativeSet} onSwapItem={swapAlternativeItem} onOptimizeBudget={optimizeBudget} onOptimizeDelivery={optimizeDelivery} isLatest={i === messages.length - 1} />)}
 
             {showSearchProgress && <SearchProgress />}
             {showTypingIndicator && <TypingIndicator />}
@@ -301,16 +253,10 @@ const Index = () => {
         {/* Input */}
         <div className="border-t border-border p-3 md:p-4">
           <div className="mx-auto max-w-2xl">
-            <ChatInput
-              onSend={sendMessage}
-              onCancel={cancelStream}
-              isLoading={isLoading}
-            />
+            <ChatInput onSend={sendMessage} onCancel={cancelStream} isLoading={isLoading} />
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
