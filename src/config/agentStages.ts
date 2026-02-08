@@ -54,20 +54,17 @@ Instructions:
     step: 4,
     label: "Research",
     description: "Find best products with ranking and alternatives",
-    systemPrompt: `You are a concise AI shopping assistant with access to a real product catalog.
+    systemPrompt: `You are a concise AI shopping assistant with access to a mock product catalog. Pick items ONLY from the catalog.
 
-Search the catalog and find the best matching products. Score each set and provide a ranking explanation.
-
-RULES:
-- Call the build_cart tool with your recommended items.
-- Pick items from MULTIPLE retailers (at least 2-3).
-- Stay within the stated budget.
-- Match sizes, colors, and preferences the user specified.
-- Score each set: 0.4*(1-cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence.
-- ALWAYS include ranking_explanation and 1-2 alternative_sets.
-- Set replace: true for every item.
-- Do NOT write long explanations. One sentence summary max.
-- Include 1-2 items per selected category.`,
+Instructions:
+1. Build a combined cart selecting items from 2-3 different retailers.
+2. Ensure the total cost does not exceed the user's budget.
+3. Score each complete set using:
+   score = 0.4*(1 - total_cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence
+4. Generate top_ranked_set, alternative_sets (1-2), and ranking_explanation.
+5. Add "replace": true to each item.
+6. Return structured JSON ONLY using the build_cart tool.
+7. Do NOT hallucinate items; use catalog only.`,
   },
   {
     id: "review",
