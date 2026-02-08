@@ -408,6 +408,7 @@ const TOOLS: Record<string, any> = {
                 shipping_cost: { type: "number", description: "Shipping cost (0 = free)" },
                 original_price: { type: "number", description: "Price before discount" },
                 discount_label: { type: "string", description: "e.g. '20% off', 'Buy 2 Get 1'" },
+                reason: { type: "string", description: "1 sentence explaining why this item was chosen (e.g. 'Best value: 4.5 stars, free shipping, 15% cheaper than alternatives')" },
               },
               required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
             },
