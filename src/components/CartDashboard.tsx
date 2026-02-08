@@ -17,7 +17,7 @@ const RETAILER_COLORS: Record<string, string> = {
   Target: "hsl(0, 80%, 50%)",
 };
 
-export function CartDashboard({ items, budget }: CartDashboardProps) {
+export function CartDashboard({ items, budget, rankingExplanation }: CartDashboardProps) {
   const totalCost = items.reduce((sum, item) => sum + item.price, 0);
   const remaining = budget - totalCost;
 
