@@ -28,10 +28,14 @@ async function searchProducts(
   query: string,
   location: string,
   preferredRetailers: string[],
-  firecrawlKey: string
+  firecrawlKey: string,
+  buyerContext?: string
 ): Promise<SearchResult[]> {
-  // Build search query with location context
+  // Build search query with location and buyer context
   let searchQuery = `${query} buy online price reviews shipping`;
+  if (buyerContext) {
+    searchQuery += ` ${buyerContext}`;
+  }
   if (location) {
     searchQuery += ` delivery to ${location}`;
   }
