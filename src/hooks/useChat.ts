@@ -4,7 +4,9 @@ import type {
   ChecklistItem,
   ClarificationRequest,
   CartRecommendation,
+  CartRecommendationItem,
   CheckoutStep,
+  AlternativeSet,
 } from "@/types/chat";
 import type { WorkflowStage } from "@/config/agentStages";
 
@@ -298,7 +300,7 @@ export function useChat() {
       contextRef.current.clarificationValues = values;
 
       const details = Object.entries(values)
-        .filter(([, v]) => v.trim())
+        .filter(([, v]) => typeof v === "string" ? v.trim() !== "" : !!v)
         .map(([k, v]) => `${k}: ${v}`)
         .join(", ");
       const userMsg = `Here are my details: ${details}`;
@@ -375,6 +377,77 @@ export function useChat() {
     }
   }, [messages]);
 
+  /** Select an entire alternative set to replace the main cart */
+  const selectAlternativeSet = useCallback(
+    async (alt: AlternativeSet) => {
+      const itemSummary = alt.items.map((i) => `${i.emoji} ${i.name}`).join(", ");
+      const userMsg = `I want to use the "${alt.set_name}" alternative set instead: ${itemSummary}`;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: `Use "${alt.set_name}" set instead`,
+          timestamp: new Date(),
+          stage: "review",
+        },
+      ]);
+
+      setIsLoading(true);
+
+      try {
+        const allMessages = [
+          ...messages,
+          { role: "user" as const, content: userMsg },
+        ].map((m) => ({ role: m.role, content: m.content }));
+
+        await fetchAndHandle(allMessages, "review");
+      } catch (err) {
+        console.error("Alternative set selection error:", err);
+        addAssistantMessage("Sorry, something went wrong.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [messages]
+  );
+
+  /** Swap a single item from an alternative into the main cart */
+  const swapAlternativeItem = useCallback(
+    async (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => {
+      const userMsg = `Replace "${originalItem.name}" (${originalItem.retailer}, $${originalItem.price.toFixed(2)}) with "${newItem.name}" (${newItem.retailer}, $${newItem.price.toFixed(2)}) in my cart.`;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: `Swap "${originalItem.name}" → "${newItem.name}"`,
+          timestamp: new Date(),
+          stage: "review",
+        },
+      ]);
+
+      setIsLoading(true);
+
+      try {
+        const allMessages = [
+          ...messages,
+          { role: "user" as const, content: userMsg },
+        ].map((m) => ({ role: m.role, content: m.content }));
+
+        await fetchAndHandle(allMessages, "review");
+      } catch (err) {
+        console.error("Item swap error:", err);
+        addAssistantMessage("Sorry, something went wrong.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [messages]
+  );
+
   const cancelStream = useCallback(() => {
     abortRef.current?.abort();
   }, []);
@@ -394,6 +467,8 @@ export function useChat() {
     submitChecklist,
     submitClarification,
     confirmCheckout,
+    selectAlternativeSet,
+    swapAlternativeItem,
     cancelStream,
     clearMessages,
   };

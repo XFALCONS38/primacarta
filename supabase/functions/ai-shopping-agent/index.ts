@@ -28,10 +28,14 @@ async function searchProducts(
   query: string,
   location: string,
   preferredRetailers: string[],
-  firecrawlKey: string
+  firecrawlKey: string,
+  buyerContext?: string
 ): Promise<SearchResult[]> {
-  // Build search query with location context
+  // Build search query with location and buyer context
   let searchQuery = `${query} buy online price reviews shipping`;
+  if (buyerContext) {
+    searchQuery += ` ${buyerContext}`;
+  }
   if (location) {
     searchQuery += ` delivery to ${location}`;
   }
@@ -114,12 +118,13 @@ async function searchAllCategories(
   categories: string[],
   location: string,
   preferredRetailers: string[],
-  firecrawlKey: string
+  firecrawlKey: string,
+  buyerContext?: string
 ): Promise<string> {
   console.log(`Searching ${categories.length} categories...`);
 
   const searchPromises = categories.map(async (category) => {
-    const results = await searchProducts(category, location, preferredRetailers, firecrawlKey);
+    const results = await searchProducts(category, location, preferredRetailers, firecrawlKey, buyerContext);
     return { category, results };
   });
 
@@ -163,6 +168,7 @@ function extractContextFromMessages(messages: { role: string; content: string }[
   budget: number;
   preferences: string;
   preferredRetailers: string[];
+  buyerContext: string;
 } {
   const fullText = messages.map((m) => m.content).join("\n");
 
@@ -184,16 +190,36 @@ function extractContextFromMessages(messages: { role: string; content: string }[
 
   // Extract preferred retailers
   const retailerMatch = fullText.match(
-    /(?:preferred retailers|retailers|preferred stores|stores)[:\s]*(.+?)(?:\.|,\s*(?:budget|location|style|colors|delivery)|$)/im
+    /(?:preferred retailers|retailers|preferred stores|stores|preferred_retailers)[:\s]*(.+?)(?:\.|,\s*(?:budget|location|style|colors|delivery)|$)/im
   );
   const preferredRetailers = retailerMatch
     ? retailerMatch[1].split(",").map((s) => s.trim()).filter(Boolean)
     : [];
 
+  // Extract buyer characteristics for search specificity
+  const buyerParts: string[] = [];
+
+  const sizeMatch = fullText.match(/(?:size)[:\s]*([A-Za-z0-9\s\/]+?)(?:,|$)/im);
+  if (sizeMatch) buyerParts.push(`size ${sizeMatch[1].trim()}`);
+
+  const colorMatch = fullText.match(/(?:colors?|preferred colors?)[:\s]*([A-Za-z\s,]+?)(?:\.|,\s*(?:budget|location|style|size|delivery)|$)/im);
+  if (colorMatch) buyerParts.push(colorMatch[1].trim());
+
+  const genderMatch = fullText.match(/(?:gender)[:\s]*(Male|Female|Unisex)/im);
+  if (genderMatch && genderMatch[1].toLowerCase() !== "prefer not to say") buyerParts.push(genderMatch[1].trim());
+
+  const ageMatch = fullText.match(/(?:age_group|age group|age)[:\s]*([A-Za-z0-9\s()-]+?)(?:,|$)/im);
+  if (ageMatch) buyerParts.push(ageMatch[1].trim());
+
+  const styleMatch = fullText.match(/(?:style)[:\s]*([A-Za-z\s,]+?)(?:,|$)/im);
+  if (styleMatch) buyerParts.push(styleMatch[1].trim());
+
+  const buyerContext = buyerParts.join(" ");
+
   // Everything else as preferences context
   const preferences = fullText;
 
-  return { categories, location, budget, preferences, preferredRetailers };
+  return { categories, location, budget, preferences, preferredRetailers, buyerContext };
 }
 
 // ─── STAGE PROMPTS ───
@@ -212,13 +238,19 @@ Instructions:
 
 Instructions:
 - Call the request_clarification tool to generate a form for the user to fill in.
-- ALWAYS include these fields:
+- ALWAYS include these core fields:
   1. "budget" (type: number, required: true, label: "Budget ($)")
   2. "delivery_by" (type: text, required: false, label: "Need it by (date)")
   3. "location" (type: text, required: true, label: "Delivery location (ZIP code or City, State)")
   4. "preferred_retailers" (type: multiselect, required: false, label: "Preferred retailers", options: ["Any (search everywhere)", "Amazon", "Walmart", "Target", "Shein", "Temu", "AliExpress", "eBay", "Best Buy", "Etsy", "Nordstrom", "Nike", "Adidas"])
-- Also include relevant preference fields: style, team/theme, colors, must_haves, nice_to_haves, and category-specific options.
-- Pre-fill any known values from user input.
+- ALWAYS include these buyer characteristic fields (adapt labels/options to the shopping context):
+  5. "age_group" (type: select, required: false, label: "Age group", options: ["Child (2-12)", "Teen (13-17)", "Adult (18-64)", "Senior (65+)"])
+  6. "gender" (type: select, required: false, label: "Gender", options: ["Male", "Female", "Unisex", "Prefer not to say"])
+  7. "size" (type: text, required: false, label: "Size (e.g., S/M/L/XL, shoe size, or measurements)")
+  8. "colors" (type: text, required: false, label: "Preferred colors")
+  9. "style" (type: text, required: false, label: "Style preference (e.g., casual, sporty, formal)")
+- Also include relevant category-specific fields: team/theme, brand preferences, material, must_haves, nice_to_haves.
+- Pre-fill any known values from user input (e.g., if they mentioned a budget or team).
 - Return only the tool call JSON.
 - Do not write conversational text outside the tool call.`,
 
@@ -547,6 +579,7 @@ serve(async (req) => {
         location: ctx.location,
         budget: ctx.budget,
         preferredRetailers: ctx.preferredRetailers,
+        buyerContext: ctx.buyerContext,
       }));
 
       if (ctx.categories.length > 0) {
@@ -554,7 +587,8 @@ serve(async (req) => {
           ctx.categories,
           ctx.location,
           ctx.preferredRetailers,
-          FIRECRAWL_API_KEY
+          FIRECRAWL_API_KEY,
+          ctx.buyerContext
         );
         systemPrompt = buildResearchPrompt(searchContext, ctx.location);
       } else {
@@ -563,15 +597,16 @@ serve(async (req) => {
       }
     }
 
-    // ─── REVIEW STAGE: Check if replacement needed → search ───
+    // ─── REVIEW STAGE: Check if replacement/swap/set selection needed → search ───
     if (stage === "review" && FIRECRAWL_API_KEY) {
       const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
-      const isReplacement = lastUserMsg?.content && /replace|swap|switch|alternative|instead|different/i.test(lastUserMsg.content);
+      const isReplacement = lastUserMsg?.content && /replace|swap|switch|alternative|instead|different|use.*set/i.test(lastUserMsg.content);
 
       if (isReplacement) {
         // Extract what category to search for
         const replaceMatch = lastUserMsg.content.match(/replace\s+"?([^"]+)"?\s+with/i) ||
-          lastUserMsg.content.match(/replace\s+"?([^"]+)"?/i);
+          lastUserMsg.content.match(/replace\s+"?([^"]+)"?/i) ||
+          lastUserMsg.content.match(/swap\s+"?([^"]+)"?\s+/i);
         const itemToReplace = replaceMatch ? replaceMatch[1].trim() : "";
         const searchQuery = itemToReplace || "alternative product";
 
@@ -582,7 +617,8 @@ serve(async (req) => {
           searchQuery,
           ctx.location,
           ctx.preferredRetailers,
-          FIRECRAWL_API_KEY
+          FIRECRAWL_API_KEY,
+          ctx.buyerContext
         );
 
         if (searchResults.length > 0) {

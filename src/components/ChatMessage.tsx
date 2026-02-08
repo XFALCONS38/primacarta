@@ -1,7 +1,12 @@
 import ReactMarkdown from "react-markdown";
 import { motion } from "framer-motion";
 import { ShoppingCart, User } from "lucide-react";
-import type { ChatMessage as ChatMessageType, ChecklistItem } from "@/types/chat";
+import type {
+  ChatMessage as ChatMessageType,
+  ChecklistItem,
+  AlternativeSet,
+  CartRecommendationItem,
+} from "@/types/chat";
 import { ItemChecklist } from "@/components/ItemChecklist";
 import { ClarificationForm } from "@/components/ClarificationForm";
 import { CartRecommendationCard } from "@/components/CartRecommendation";
@@ -14,6 +19,8 @@ interface ChatMessageProps {
   onClarificationSubmit?: (values: Record<string, string>) => void;
   onCheckout?: () => void;
   onReplaceItem?: (itemName: string) => void;
+  onSelectAlternativeSet?: (alt: AlternativeSet) => void;
+  onSwapItem?: (originalItem: CartRecommendationItem, newItem: CartRecommendationItem) => void;
   isLatest?: boolean;
 }
 
@@ -23,6 +30,8 @@ export function ChatMessageBubble({
   onClarificationSubmit,
   onCheckout,
   onReplaceItem,
+  onSelectAlternativeSet,
+  onSwapItem,
   isLatest,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
@@ -88,6 +97,8 @@ export function ChatMessageBubble({
             cart={message.cartData}
             onCheckout={onCheckout}
             onReplaceItem={onReplaceItem}
+            onSelectAlternativeSet={onSelectAlternativeSet}
+            onSwapItem={onSwapItem}
             isLatest={isLatest}
           />
         )}
