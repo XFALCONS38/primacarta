@@ -1,287 +1,186 @@
 
 
-# Universal Access: Responsive, Touch-Friendly, and Secure
+# Fix Auth + Device-Adaptive Touch-Friendly Interface
 
-## Root Causes Found
-
-### Why it feels "broken" on other devices
-
-1. **`App.css` cripples the layout** -- The leftover Vite boilerplate sets `#root { max-width: 1280px; padding: 2rem; text-align: center; }`. This adds 2rem padding on every side (wasting 64px on mobile), caps width to 1280px, and center-aligns everything. The chat interface uses `h-screen` which conflicts with this padding, causing scroll/overflow issues on smaller screens.
-
-2. **Mobile viewport height is wrong** -- The chat view uses `h-screen` (which equals CSS `100vh`). On mobile browsers, `100vh` includes the address bar, so the input area gets hidden behind the browser chrome. Need to use `100dvh` (dynamic viewport height).
-
-3. **Touch interactions are invisible** -- Multiple components rely on hover-only patterns:
-   - Session history delete button: `hidden group-hover:block` (never appears on touch)
-   - Alternative item swap button: `opacity-0 group-hover:opacity-100` (invisible on touch)
-   - Tooltip-based decision trace on cart items: tooltips don't open on tap by default
-
-4. **Touch targets are too small** -- Many interactive elements are under the 44x44px minimum recommended for touch:
-   - Sidebar toggle: `p-2` with 16px icon
-   - Sort dropdown: `h-7` (28px)
-   - Checklist items: small hit area
-   - Stage indicator dots: 6px wide
-
-5. **Cart dashboard breaks on small screens** -- `grid-cols-3` for stat cards and `grid-cols-2` for charts don't stack on mobile, causing horizontal overflow.
-
-6. **No safe area insets** -- Modern phones with notches/dynamic islands clip content behind the notch. The sidebar toggle at `left-3 top-3` sits under the status bar on many phones.
-
-7. **Cart Item Explorer tabs overflow** -- When there are many categories, the `TabsList` with `flex-wrap` still creates a cramped UI on narrow screens.
-
-### Security Vulnerabilities
-
-1. **Edge function is completely open** -- `verify_jwt = false` and no rate limiting means anyone can spam the endpoint, burning through OpenAI and Firecrawl API credits. Each call costs real money.
-
-2. **No input sanitization on checkout form** -- The checkout form passes user input directly without sanitizing against XSS patterns. While React escapes rendered output, the data flows to edge function responses.
-
-3. **Published URL may not be updated** -- If the user is sharing the preview URL (which is session-specific), other people genuinely can't access it. The published URL at `primacarta.lovable.app` is what should be shared.
+This plan addresses two critical issues: the app is completely broken due to authentication gates (401 errors), and the interface needs to be tailored to each device type with enhanced touch friendliness.
 
 ---
 
-## Implementation Plan
+## Part 1: Fix the 401 -- Remove Authentication Gates
 
-### 1. Remove App.css Boilerplate
+The app is currently non-functional because two auth gates block every request.
 
-**File: `src/App.css`**
+### 1A. Frontend: `src/hooks/useChat.ts`
 
-Delete all the Vite boilerplate CSS. The `#root` constraints (`max-width: 1280px`, `padding: 2rem`, `text-align: center`) are actively breaking the full-screen chat layout. Replace with a clean reset that respects mobile viewports.
+**Problem:** Lines 42-47 call `supabase.auth.getSession()` and throw "Not authenticated" when no session exists. Since there is no login flow, this always fails.
 
-New content:
+**Fix:**
+- Remove the `supabase.auth.getSession()` call and the "Not authenticated" guard
+- Send the anon key as the Bearer token instead (standard pattern for public edge functions)
+- Remove the unused `supabase` import
+
+### 1B. Edge Function: `supabase/functions/ai-shopping-agent/index.ts`
+
+**Problem:** Lines 736-761 validate the Bearer token with `supabase.auth.getUser()` and return 401 when the token is the anon key (not a user JWT).
+
+**Fix:**
+- Remove the entire JWT authentication block (lines 736-761)
+- Remove the `createClient` import since it is no longer needed
+- Keep the IP-based rate limiting (already in place)
+- Keep all input validation (already in place)
+- The `verify_jwt = false` config already allows public access at the gateway level
+
+### 1C. Cleanup (optional)
+
+Remove unused auth files that are not referenced anywhere:
+- `src/pages/Auth.tsx`
+- `src/hooks/useAuth.tsx`
+- `src/components/ProtectedRoute.tsx`
+
+---
+
+## Part 2: Device-Adaptive Interface
+
+Create a `useDeviceType` hook that detects the device category and pointer type, then use it to tailor layouts and interactions across all components.
+
+### 2A. New Hook: `src/hooks/useDeviceType.ts`
+
+Detects three dimensions:
+- **Screen class:** `mobile` (under 640px), `tablet` (640-1024px), `desktop` (over 1024px)
+- **Pointer type:** `coarse` (touch) or `fine` (mouse/trackpad)
+- **Orientation:** `portrait` or `landscape`
+
+Uses `matchMedia` listeners for live updates when a device rotates or windows resize.
+
+### 2B. Landing Page Adaptation: `src/pages/Index.tsx`
+
+- **Mobile:** Single-column "How it works" cards, compact hero text (`text-3xl`), smaller example prompts, full-bleed layout
+- **Tablet:** Two-column example prompts, medium hero text (`text-4xl`), sidebar slides in with gesture-like overlay
+- **Desktop:** Three-column how-it-works, full hero text (`text-5xl/6xl`), persistent sidebar
+- **Touch devices:** Larger "Start Shopping" button (56px height), larger spacing between example prompts for fat-finger safety
+
+### 2C. Chat Interface Adaptation: `src/pages/Index.tsx`
+
+- **Mobile touch:** Bottom-sheet style sidebar (slides up from bottom instead of from left), chat input has larger padding, message bubbles use full width
+- **Tablet:** Sidebar width increases to 280px, chat area maxes at `max-w-3xl`
+- **Desktop:** Persistent sidebar, wider chat area
+- Use `useDeviceType` to control sidebar behavior (swipe-to-dismiss on touch, click-overlay on desktop)
+
+### 2D. Component-Level Tailoring
+
+**ItemChecklist (`src/components/ItemChecklist.tsx`):**
+- Mobile: `grid-cols-1` for narrow phones (under 380px), `grid-cols-2` otherwise
+- Tablet/Desktop: `grid-cols-2 sm:grid-cols-3`
+- Touch: Larger checklist buttons with more padding (`py-4`), active state has a slight scale animation for tactile feedback
+
+**ClarificationForm (`src/components/ClarificationForm.tsx`):**
+- Touch: All input fields get `h-12` (48px) instead of `h-10`
+- Multiselect chips get `min-h-[44px]` and `px-3 py-2` for easier tapping
+- Mobile: Stack form fields single-column, full-width selects
+
+**CartRecommendation (`src/components/CartRecommendation.tsx`):**
+- Touch: Replace button shows immediately (already has `touch-visible`), make it 44px
+- Mobile: Cart item names wrap instead of truncate
+- Action buttons (Optimize Budget/Delivery) get `h-12` on touch devices
+
+**CartItemExplorer (`src/components/CartItemExplorer.tsx`):**
+- Touch: Accordion items expand with a single tap (already works), but add active:scale-[0.98] for tactile feedback
+- Mobile: Sort dropdown becomes full-width
+- Tab triggers get `min-h-[44px]` on touch devices
+
+**CheckoutForm (`src/components/CheckoutForm.tsx`):**
+- Touch: Input height becomes `h-12`, City/State/ZIP grid changes from `grid-cols-3` to `grid-cols-1 sm:grid-cols-3` on very small screens
+- Add `inputMode="numeric"` to ZIP and card fields for numeric keyboard on mobile
+- Add `autocomplete` attributes for autofill on all devices
+
+**ExamplePrompts (`src/components/ExamplePrompts.tsx`):**
+- Touch: Add `active:scale-[0.98]` for tactile press feedback
+- Mobile: Single column layout, full-width cards
+- Desktop: Two-column grid (already in place)
+
+**ChatInput (`src/components/ChatInput.tsx`):**
+- Touch: Textarea gets `text-base` (16px, already in place), send button stays `h-10 w-10`
+- Add `enterKeyHint="send"` to the textarea for mobile keyboards showing "Send" instead of "Return"
+
+**StageIndicator (`src/components/StageIndicator.tsx`):**
+- Touch: Stage dots become tappable with tooltip-like label on tap
+- Mobile: Show current stage label always (remove `hidden sm:inline`)
+- Add `min-h-[28px]` to the dot row for easier interaction
+
+### 2E. CSS Enhancements: `src/index.css`
+
+Add device-aware utility classes:
+
 ```css
-#root {
-  min-height: 100dvh;
-  min-height: 100vh; /* fallback */
-}
-```
-
-### 2. Fix Mobile Viewport Height
-
-**File: `src/pages/Index.tsx`**
-
-- Change `h-screen` to use dynamic viewport height via a utility class
-- Add safe area padding for notched devices
-
-**File: `src/index.css`**
-
-Add utility classes:
-```css
-.h-dvh {
-  height: 100dvh;
-  height: 100vh; /* fallback for older browsers */
-}
-```
-
-Add safe area support:
-```css
-@supports (padding: env(safe-area-inset-top)) {
-  .safe-top { padding-top: env(safe-area-inset-top); }
-  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-  .safe-left { padding-left: env(safe-area-inset-left); }
-  .safe-right { padding-right: env(safe-area-inset-right); }
-}
-```
-
-**File: `index.html`**
-
-Add `viewport-fit=cover` to the viewport meta tag to enable safe area insets:
-```html
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-```
-
-### 3. Fix Touch Interactions
-
-**File: `src/components/SessionHistory.tsx`**
-
-Change the delete button from `hidden group-hover:block` to always visible on touch devices:
-```
-className="shrink-0 rounded p-1.5 text-muted-foreground hover:text-destructive 
-           opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 
-           touch-device:opacity-100 transition-opacity"
-```
-
-Since CSS can't detect touch reliably, use `@media (pointer: coarse)` in `index.css`:
-```css
+/* Tactile feedback for touch devices */
 @media (pointer: coarse) {
-  .touch-visible { opacity: 1 !important; display: block !important; }
-}
-```
-
-Then apply the class to hover-dependent elements.
-
-**File: `src/components/CartRecommendation.tsx`**
-
-Change the swap button in `AlternativeItemRow` from hover-only to always visible on coarse pointer devices. Same pattern.
-
-**File: `src/components/CartRecommendation.tsx`**
-
-The `Tooltip` on cart item reason doesn't work on touch. Wrap it in a click-to-toggle popover for mobile, or use the existing reason display in the explorer instead.
-
-### 4. Increase Touch Target Sizes
-
-**Files: Multiple components**
-
-Apply minimum 44px touch targets on interactive elements:
-
-- `src/pages/Index.tsx`: Sidebar toggle -- change `p-2` to `p-3` (48px target) and move to safe area
-- `src/components/SessionHistory.tsx`: Delete button -- change `p-1` to `p-2.5`; session rows -- add `min-h-[44px]`
-- `src/components/ItemChecklist.tsx`: Checklist buttons -- ensure `min-h-[44px]` and `py-3`
-- `src/components/CartItemExplorer.tsx`: Sort dropdown -- change `h-7` to `h-9`; accordion buttons -- ensure `min-h-[44px]`
-- `src/components/ClarificationForm.tsx`: Input fields -- already `h-8`, bump to `h-10` on mobile
-- `src/components/CheckoutForm.tsx`: Input fields -- same, `h-10`
-- `src/components/ExamplePrompts.tsx`: Prompt cards -- add `min-h-[48px]`
-- `src/components/ChatInput.tsx`: Send/cancel buttons -- change `h-8 w-8` to `h-10 w-10`
-
-### 5. Fix CartDashboard Responsive Layout
-
-**File: `src/components/CartDashboard.tsx`**
-
-- Change `grid-cols-3` to `grid-cols-1 sm:grid-cols-3` for stat cards
-- Change `grid-cols-2` to `grid-cols-1 sm:grid-cols-2` for charts
-- Ensure chart containers have `min-h-[200px]` on mobile
-
-### 6. Fix CartItemExplorer on Small Screens
-
-**File: `src/components/CartItemExplorer.tsx`**
-
-- Change `max-w-md` to `w-full max-w-md` (already done) but also ensure it doesn't overflow its parent
-- Make tabs scroll horizontally on narrow screens instead of wrapping awkwardly:
-  ```
-  TabsList className="w-full overflow-x-auto flex-nowrap scrollbar-hide"
-  ```
-- Detail grid: change `grid-cols-2` to `grid-cols-1 sm:grid-cols-2`
-
-### 7. Fix CartRecommendation on Small Screens
-
-**File: `src/components/CartRecommendation.tsx`**
-
-- Ensure `max-w-md` doesn't cause the card to be narrower than the screen on small devices
-- Cart item rows: allow name to wrap instead of `truncate` on mobile
-- Optimizer button grid: change `grid-cols-2` to `grid-cols-1 xs:grid-cols-2`
-
-### 8. Fix Landing Page Responsiveness
-
-**File: `src/pages/Index.tsx`**
-
-- Landing page "How it works" grid: already `grid-cols-3` -- add `gap-2` for very small screens
-- Hero text: `text-5xl sm:text-6xl` is fine
-- Ensure `min-h-dvh` instead of `min-h-screen`
-
-### 9. Add Rate Limiting to Edge Function
-
-**File: `supabase/functions/ai-shopping-agent/index.ts`**
-
-Add a simple in-memory rate limiter (per-IP, 10 requests per minute):
-```typescript
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + 60000 });
-    return true;
+  .touch-active:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
   }
-  if (entry.count >= 10) return false;
-  entry.count++;
-  return true;
+  
+  /* Disable hover effects that cause "sticky hover" on touch */
+  .touch-no-hover:hover {
+    background-color: inherit;
+  }
 }
-```
 
-Return `429 Too Many Requests` when limit is exceeded.
-
-### 10. Sanitize Checkout Form Input
-
-**File: `src/components/CheckoutForm.tsx`**
-
-Add Zod validation (already in the project) to the checkout form:
-```typescript
-const checkoutSchema = z.object({
-  fullName: z.string().trim().min(1).max(100).regex(/^[a-zA-Z\s\-'.]+$/),
-  email: z.string().trim().email().max(255),
-  address: z.string().trim().min(1).max(200),
-  city: z.string().trim().min(1).max(100),
-  state: z.string().trim().min(1).max(2),
-  zip: z.string().trim().min(5).max(10).regex(/^[0-9\-]+$/),
-  cardLast4: z.string().length(4).regex(/^\d{4}$/),
-});
-```
-
-Validate before calling `onSubmit`.
-
-### 11. Prevent iOS Zoom on Input Focus
-
-**File: `src/index.css`**
-
-iOS Safari zooms in on inputs with font-size below 16px. Prevent this:
-```css
-@supports (-webkit-touch-callout: none) {
-  input, select, textarea {
-    font-size: 16px !important;
+/* Landscape phone adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .landscape-compact {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
   }
 }
 ```
 
-Or more elegantly, ensure all form inputs use `text-base` (16px) instead of `text-sm` (14px) on mobile.
+### 2F. Swipe-to-Close Sidebar on Touch
 
-### 12. Smooth Scrolling on Chat
-
-**File: `src/index.css`**
-
-Add `-webkit-overflow-scrolling: touch` and `overscroll-behavior` for native-feeling scroll:
-```css
-.chat-scroll {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-}
-```
+In `src/pages/Index.tsx`, add touch event handlers to the sidebar overlay:
+- Track `touchstart` and `touchmove` events
+- When swiping left more than 80px, close the sidebar
+- Add `will-change: transform` for smooth animation
 
 ---
 
 ## Files Changed Summary
 
 | File | Change |
-|---|---|
-| `src/App.css` | Remove all Vite boilerplate; minimal reset with dvh |
-| `index.html` | Add `viewport-fit=cover` to viewport meta |
-| `src/index.css` | Add dvh utility, safe-area classes, coarse-pointer touch rules, iOS zoom fix, smooth scroll |
-| `src/pages/Index.tsx` | Use `h-dvh` instead of `h-screen`, `min-h-dvh`, safe area padding on sidebar toggle and header |
-| `src/components/ChatInput.tsx` | Larger send/cancel buttons (h-10 w-10), `text-base` on mobile |
-| `src/components/SessionHistory.tsx` | Always-visible delete on touch, larger touch targets |
-| `src/components/CartRecommendation.tsx` | Always-visible swap on touch, responsive optimizer grid, tooltip-to-popover for touch |
-| `src/components/CartItemExplorer.tsx` | Horizontal-scroll tabs, larger sort dropdown, responsive detail grid |
-| `src/components/CartDashboard.tsx` | Responsive grid stacking on mobile |
-| `src/components/ItemChecklist.tsx` | Larger touch targets (min-h-[44px]) |
-| `src/components/ClarificationForm.tsx` | Larger inputs on mobile |
-| `src/components/CheckoutForm.tsx` | Larger inputs, Zod validation |
-| `src/components/ExamplePrompts.tsx` | Larger touch targets |
-| `src/components/CheckoutSimulation.tsx` | Responsive card layout |
-| `src/components/StageIndicator.tsx` | Slightly larger dots for visibility |
-| `supabase/functions/ai-shopping-agent/index.ts` | Add IP-based rate limiting |
+|------|--------|
+| `src/hooks/useChat.ts` | Remove auth gate, use anon key as Bearer token |
+| `supabase/functions/ai-shopping-agent/index.ts` | Remove JWT auth block, keep rate limiting |
+| `src/hooks/useDeviceType.ts` | **NEW** -- device type, pointer, orientation detection hook |
+| `src/pages/Index.tsx` | Device-adaptive layouts, swipe-to-close sidebar, responsive hero |
+| `src/components/ItemChecklist.tsx` | Touch-friendly grid, tactile feedback |
+| `src/components/ClarificationForm.tsx` | Larger touch targets, mobile stacking |
+| `src/components/CartRecommendation.tsx` | Touch-friendly actions, mobile word-wrap |
+| `src/components/CartItemExplorer.tsx` | Tactile feedback, full-width sort on mobile |
+| `src/components/CheckoutForm.tsx` | Numeric keyboards, autocomplete, responsive grid |
+| `src/components/ExamplePrompts.tsx` | Tactile press feedback, mobile single-column |
+| `src/components/ChatInput.tsx` | `enterKeyHint="send"` for mobile keyboards |
+| `src/components/StageIndicator.tsx` | Always-visible label, larger touch area |
+| `src/index.css` | Touch-active utility, landscape mode, sticky-hover fix |
+| `src/pages/Auth.tsx` | **DELETE** -- unused |
+| `src/hooks/useAuth.tsx` | **DELETE** -- unused |
+| `src/components/ProtectedRoute.tsx` | **DELETE** -- unused |
 
 ---
 
 ## Priority Order
 
 ```text
-CRITICAL (fixes "can't access" feel):
-  1. Remove App.css boilerplate padding/max-width (2 min)
-  2. Fix mobile viewport height with dvh (5 min)
-  3. Add viewport-fit=cover + safe areas (3 min)
+CRITICAL (app is broken without this):
+  1. Remove auth gate in useChat.ts
+  2. Remove JWT auth in edge function + redeploy
 
-HIGH (touch usability):
-  4. Fix hover-only interactions for touch (10 min)
-  5. Increase touch target sizes across all components (15 min)
-  6. Fix iOS zoom on input focus (2 min)
+DEVICE ADAPTATION:
+  3. Create useDeviceType hook
+  4. Adapt Index.tsx layout per device class
+  5. Touch-friendly component updates (all components)
+  6. CSS utility additions
+  7. Mobile keyboard optimizations (enterKeyHint, inputMode)
 
-RESPONSIVE (visual correctness):
-  7. CartDashboard responsive grid (5 min)
-  8. CartItemExplorer scrollable tabs + responsive detail grid (5 min)
-  9. CartRecommendation responsive layout (5 min)
-
-SECURITY:
-  10. Rate limiting on edge function (10 min)
-  11. Checkout form Zod validation (5 min)
-
-POLISH:
-  12. Smooth scroll for chat (2 min)
+CLEANUP:
+  8. Delete unused auth files
 ```
 
