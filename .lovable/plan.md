@@ -1,59 +1,221 @@
 
 
-# Update System Prompts to Match Spec
+# Real Product Search with Firecrawl Integration
 
-The provided prompts are cleaner and more explicit than the current ones. Here is what will change and where.
-
----
-
-## What needs updating
-
-Comparing the provided prompts against the current code, the differences are:
-
-1. **Stage 1 (Identify)** -- Minor wording differences. The new prompt is slightly more structured with clearer formatting. Current version is already close.
-
-2. **Stage 3 (Clarify)** -- The new prompt adds explicit mention of `preferences (style, team/theme, colors, must_haves, nice_to_haves)` and session pre-fill. Current version is similar but less specific about preference fields.
-
-3. **Stage 4 (Research)** -- The new prompt restructures as numbered steps (1-7), makes the scoring formula more prominent, and explicitly says "Do NOT hallucinate items; use catalog only." The current version covers the same ground but in a different format.
-
-4. **Stage 5 (Review)** -- The new prompt is more concise: "suggest alternatives from the catalog" and "Return updated combined_cart JSON." Current version is more verbose with extra rules.
-
-5. **Stage 6 (Checkout)** -- The new prompt simplifies checkout steps to "Name, Address, Payment, Confirm" and explicitly says "Do NOT stream free text. Use the structured tool output." Current version is more detailed with 4-6 steps per retailer.
+This plan replaces the static 85-item mock product catalog with live internet product search powered by Firecrawl. The agent will search across ALL online retailers -- Amazon, Walmart, Target, Shein, Temu, AliExpress, eBay, Best Buy, Etsy, and any other site with relevant products. Users can optionally restrict searches to specific sites. Ranking will consider reviews, reliability, discounts, shipping costs, delivery time, location, and more -- not just the lowest price.
 
 ---
 
-## Changes by file
+## Architecture Overview
 
-### 1. `supabase/functions/ai-shopping-agent/index.ts` (the authoritative prompts)
+The research stage currently injects a hardcoded JSON catalog into the AI prompt. The new flow replaces this with a two-phase approach inside the edge function:
 
-Update the `STAGE_PROMPTS` object (lines 94-178) with the user's refined prompts:
+```text
+Phase 1: SEARCH (Firecrawl)
+  For each item category the user selected, fire a Firecrawl
+  web search query. Include location context for delivery
+  filtering. Collect results from across the web.
 
-- **identify**: Replace with the cleaner version that uses bullet points and explicit tool call format
-- **clarify**: Add explicit preference field mentions (style, team/theme, colors, must_haves, nice_to_haves) and session pre-fill instruction
-- **research**: Restructure as numbered steps 1-7, keep the catalog injection (`${CATALOG_JSON}`), make scoring formula more prominent, add rule 7 "Do NOT hallucinate items; use catalog only"
-- **review**: Simplify to the concise version -- no rebuild unless replacement requested, suggest from catalog, return updated cart JSON
-- **checkout**: Replace with the simplified 4-step pattern (Name, Address, Payment, Confirm), add "Do NOT stream free text" rule
-
-### 2. `src/config/agentStages.ts` (frontend reference copy)
-
-Update the `systemPrompt` field for each stage (lines 23-118) to mirror the edge function prompts. These are used as documentation/reference on the frontend side:
-
-- **identify** (line 23-34): Update to match new wording
-- **clarify** (line 48-61): Add preference fields instruction
-- **research** (line 68-81): Restructure as numbered steps with scoring formula
-- **review** (line 88-102): Simplify
-- **checkout** (line 109-117): Simplify to 4-step pattern with "no streaming" rule
-
-No tool schema changes needed -- the `TOOL_DEFINITIONS` and `TOOLS` objects are already correct and complete.
-
-No frontend logic changes needed -- `useChat.ts` already handles all tool responses correctly.
+Phase 2: RANK (OpenAI)
+  Feed the aggregated search results into GPT as context.
+  The AI evaluates products on price, reviews, reliability,
+  discounts, shipping cost, delivery time, and location --
+  then builds the ranked cart with alternatives.
+```
 
 ---
 
-## Technical notes
+## Step-by-step implementation
 
-- The edge function file is the only one that matters at runtime. The `agentStages.ts` file is kept in sync for developer reference only (it is not sent to the AI).
-- The product catalog injection (`${CATALOG_JSON}`) in the research and review prompts stays exactly as-is.
-- The `generate_checkout` tool and `build_cart` tool schemas remain unchanged.
-- After updating the edge function, it will be redeployed automatically.
+### Step 1: Store the Firecrawl API key as a secret
+
+The Firecrawl API key (`fc-cad4021a3da94146883d09cf21cd918f`) needs to be stored as a backend secret named `FIRECRAWL_API_KEY` so the edge function can access it securely.
+
+### Step 2: Add location and retailer preferences to the clarification form
+
+Update the **Clarify** stage system prompt to instruct the AI to always include these fields:
+
+- **Location (ZIP code or city)** -- text field, required. Used to check delivery feasibility.
+- **Preferred retailers** -- multiselect field, optional. Options like "Any (search everywhere)", "Amazon", "Walmart", "Target", "Shein", "Temu", "AliExpress", "eBay", "Best Buy", "Etsy". If "Any" or empty, the agent searches broadly.
+
+No frontend form code changes needed -- the AI dynamically generates the form fields via the `request_clarification` tool.
+
+### Step 3: Rewrite the edge function (`supabase/functions/ai-shopping-agent/index.ts`)
+
+This is the core change. The file will be restructured:
+
+**Remove:**
+- The entire `PRODUCT_CATALOG` array (lines 11-89)
+- The `CATALOG_JSON` constant (line 91)
+- Catalog references in the research and review prompts
+
+**Add:**
+- A `searchProducts()` helper function that calls Firecrawl's search API
+- A `searchAllCategories()` function that runs parallel searches for each item category
+- Updated research and review prompts that work with live search results
+
+**`searchProducts` function logic:**
+```text
+Input: query string, location string, preferred retailers array
+Process:
+  1. Build a search query: "[item category] buy online [location] reviews price"
+  2. If preferred retailers specified, add "site:amazon.com site:shein.com ..."
+  3. Call Firecrawl search API (POST https://api.firecrawl.dev/v1/search)
+  4. Request scrapeOptions with markdown format to get product details
+  5. Return structured results: product name, price, retailer, URL,
+     reviews summary, shipping info, discounts
+Output: Array of search results per category
+```
+
+**`searchAllCategories` function logic:**
+```text
+Input: item categories array, location, preferred retailers
+Process:
+  1. For each category, call searchProducts() in parallel
+  2. Limit to 5 results per category to stay within token limits
+  3. Aggregate all results into a single context block
+Output: Formatted string of all search results for the AI prompt
+```
+
+**Updated research stage flow:**
+```text
+1. Parse the conversation to extract: item categories,
+   location, budget, preferences, preferred retailers
+2. Call searchAllCategories() with Firecrawl
+3. Inject search results into the system prompt
+4. Call OpenAI with the enriched prompt
+5. AI ranks products considering ALL factors and returns
+   build_cart tool call
+```
+
+**Updated research prompt (key changes):**
+```text
+You are a shopping assistant. Below are REAL product search
+results from across the internet. Use ONLY these results to
+build the cart -- do not make up products.
+
+SEARCH RESULTS:
+[injected Firecrawl results]
+
+RANKING CRITERIA (weighted scoring):
+- 25% Value: price vs budget, active discounts/sales/coupons
+- 20% Delivery: estimated shipping time to [user location],
+  shipping cost (free shipping = bonus)
+- 20% Reviews & reliability: star rating, review count,
+  seller reputation, return policy
+- 15% Preference match: colors, style, team/theme, features
+- 10% Retailer trust: established retailer vs unknown seller
+- 10% Style coherence: how items look together as a set
+
+For each product include:
+- name, retailer (actual site name), price, shipping_cost,
+  estimated_delivery_days, rating, review_count, url,
+  discount info, emoji
+
+Explain your ranking in plain language covering WHY each
+factor led to this choice.
+```
+
+### Step 4: Update the `build_cart` tool schema
+
+Modify the tool definition to support real-world data:
+
+- **Remove** the `retailer` enum restriction (`["Amazon", "Walmart", "Target"]`). Change to a free-form string so any retailer name works.
+- **Add** new optional fields to each cart item:
+  - `url` (string) -- direct link to the product page
+  - `rating` (number) -- star rating (e.g. 4.5)
+  - `review_count` (number) -- number of reviews
+  - `shipping_cost` (number) -- shipping cost (0 = free)
+  - `original_price` (number) -- price before discount, if applicable
+  - `discount_label` (string) -- e.g. "20% off", "Buy 2 Get 1"
+- Same changes apply to items in `alternative_sets`
+- Update `generate_checkout` tool to also remove the retailer enum
+
+### Step 5: Update TypeScript types (`src/types/chat.ts`)
+
+Update `CartRecommendationItem`:
+- Change `retailer` from `"Amazon" | "Walmart" | "Target"` to `string`
+- Add optional fields: `url`, `rating`, `review_count`, `shipping_cost`, `original_price`, `discount_label`
+
+### Step 6: Update the Cart UI (`src/components/CartRecommendation.tsx`)
+
+- **Retailer colors**: Instead of only 3 hardcoded colors, use a dynamic color assignment for any retailer name (hash the name to pick from a palette)
+- **Product details**: Show rating stars, review count, shipping cost, and discount badge when available
+- **Product link**: Make the product name clickable, linking to the `url` if available
+- **Shipping info**: Show "Free shipping" badge or shipping cost next to delivery days
+
+### Step 7: Update the Checkout UI
+
+- Remove the retailer enum from `CheckoutSimulation.tsx` and `RetailerBadge.tsx` so any retailer string works
+- The `RetailerBadge` component should handle arbitrary retailer names gracefully
+
+### Step 8: Update the landing page and header text
+
+- Change "Amazon, Walmart, Target" references to "across the internet" or "all online stores"
+- Update the landing page description and header subtitle
+
+### Step 9: Update the review stage prompt
+
+- For replacements, the AI will trigger a new Firecrawl search for alternatives in that specific category rather than referencing the old static catalog
+- The edge function will detect replacement requests in the review stage and run a targeted search before calling OpenAI
+
+### Step 10: Update `src/config/agentStages.ts`
+
+Keep the frontend reference prompts in sync with the edge function changes. Update the `systemPrompt` for research, review, and clarify stages.
+
+---
+
+## Technical details
+
+### Firecrawl search call structure
+
+```text
+POST https://api.firecrawl.dev/v1/search
+Headers:
+  Authorization: Bearer [FIRECRAWL_API_KEY]
+  Content-Type: application/json
+Body:
+  {
+    "query": "buy wireless earbuds online reviews price shipping",
+    "limit": 5,
+    "scrapeOptions": { "formats": ["markdown"] }
+  }
+```
+
+Each search returns up to 5 results with title, URL, description, and scraped markdown content containing pricing and review data.
+
+### Token management
+
+- 10 item categories x 5 results = 50 products max
+- Each result's markdown is truncated to ~500 chars to keep total context under 25K tokens
+- This fits comfortably within GPT-4o-mini's 128K context window
+
+### Edge function timeout handling
+
+Firecrawl searches may take 3-10 seconds per query. Running them in parallel (Promise.allSettled) keeps total search time under 15 seconds. The edge function has a 60-second timeout, leaving plenty of room.
+
+### Retailer-specific search queries
+
+When the user selects specific retailers, the search query includes `site:` filters:
+```text
+"wireless earbuds site:amazon.com site:shein.com site:temu.com"
+```
+
+When "Any" is selected, no site filter is applied -- Firecrawl searches the entire web.
+
+---
+
+## Files modified
+
+| File | Change |
+|------|--------|
+| `supabase/functions/ai-shopping-agent/index.ts` | Remove static catalog; add Firecrawl search functions; update research/review/clarify prompts; update tool schemas |
+| `supabase/config.toml` | No change needed (function already configured) |
+| `src/types/chat.ts` | Update CartRecommendationItem: retailer to string, add url/rating/review_count/shipping_cost/original_price/discount_label |
+| `src/config/agentStages.ts` | Update system prompts for research/review/clarify stages; update tool definitions to remove retailer enum |
+| `src/components/CartRecommendation.tsx` | Dynamic retailer colors; show ratings, reviews, shipping cost, discount badges; clickable product links |
+| `src/components/CheckoutSimulation.tsx` | Remove hardcoded retailer enum |
+| `src/components/RetailerBadge.tsx` | Handle any retailer name |
+| `src/pages/Index.tsx` | Update "Amazon, Walmart, Target" text to "across the internet" |
+| `src/hooks/useChat.ts` | Map new fields (url, rating, shipping_cost, etc.) from build_cart response |
 
