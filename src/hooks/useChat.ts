@@ -601,6 +601,22 @@ export function useChat() {
     setPendingCheckout(false);
   }, []);
 
+  /** Restore a previous session's messages and stage */
+  const restoreSession = useCallback((msgs: ChatMessage[], sessionStage?: WorkflowStage) => {
+    setMessages(msgs);
+    setStage(sessionStage || "identify");
+    lastCartRef.current = null;
+    contextRef.current = {};
+    setPendingCheckout(false);
+    // Restore last cart from messages if available
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].cartData) {
+        lastCartRef.current = msgs[i].cartData!;
+        break;
+      }
+    }
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -617,5 +633,6 @@ export function useChat() {
     swapAlternativeItem,
     cancelStream,
     clearMessages,
+    restoreSession,
   };
 }

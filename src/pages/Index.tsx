@@ -52,8 +52,9 @@ const Index = () => {
   };
   const handleSelectSession = (session: ShoppingSession) => {
     setActiveSessionId(session.id);
-    chat.clearMessages();
+    chat.restoreSession(session.messages, session.stage);
     setShowSidebar(false);
+    if (!showChat) setShowChat(true);
   };
 
   if (!showChat) {
