@@ -1,70 +1,64 @@
-import type { Product } from "@/data/products";
+import type { WorkflowStage } from "@/config/agentStages";
 
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
-  structuredData?: StructuredData;
+  // Structured UI data
+  checklist?: ChecklistItem[];
+  clarificationRequest?: ClarificationRequest;
+  cartData?: CartRecommendation;
+  stage?: WorkflowStage;
 }
 
-export interface StructuredData {
-  type: "intent" | "cart" | "checkout" | "explanation";
-  data: ParsedIntent | CartData | CheckoutData | string;
+// Item checklist for stage 1 → 2
+export interface ChecklistItem {
+  id: string;
+  label: string;
+  emoji: string;
+  selected: boolean;
 }
 
-export interface ParsedIntent {
-  scenario: string;
-  budget: number;
-  delivery_by: string;
-  preferences: {
-    team?: string;
-    theme?: string;
-    style?: string;
-    colors?: string[];
-    must_haves?: string[];
-    nice_to_haves?: string[];
-  };
+// Clarification form for stage 3
+export interface ClarificationField {
+  id: string;
+  label: string;
+  type: "text" | "number" | "select" | "multiselect";
+  value: string;
+  options?: string[];
+  required: boolean;
 }
 
-export interface CartItem {
-  product: Product;
-  quantity: number;
-  selectedVariant?: string;
-  selectedColor?: string;
+export interface ClarificationRequest {
+  title: string;
+  fields: ClarificationField[];
 }
 
-export interface CartData {
-  items: CartItem[];
-  totalCost: number;
-  budget: number;
-  explanation: string;
-}
-
-export interface CheckoutStep {
+// Cart data for stage 4-5
+export interface CartRecommendationItem {
+  name: string;
+  category: string;
   retailer: "Amazon" | "Walmart" | "Target";
-  items: CartItem[];
-  subtotal: number;
-  steps: string[];
+  price: number;
+  delivery_days: number;
+  emoji: string;
+  variant?: string;
 }
 
-export interface CheckoutData {
-  steps: CheckoutStep[];
+export interface CartRecommendation {
+  summary: string;
+  items: CartRecommendationItem[];
   totalCost: number;
-  address: {
-    name: string;
-    street: string;
-    city: string;
-    state: string;
-    zip: string;
-  };
+  budget: number;
 }
 
+// Session persistence
 export interface ShoppingSession {
   id: string;
   title: string;
   messages: ChatMessage[];
-  cart?: CartData;
+  stage?: WorkflowStage;
   createdAt: Date;
   updatedAt: Date;
 }

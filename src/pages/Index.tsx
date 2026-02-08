@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ShoppingCart, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,32 +7,41 @@ import { ChatInput } from "@/components/ChatInput";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { ExamplePrompts } from "@/components/ExamplePrompts";
 import { SessionHistory } from "@/components/SessionHistory";
+import { StageIndicator } from "@/components/StageIndicator";
 import { useChat } from "@/hooks/useChat";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type { ShoppingSession } from "@/types/chat";
 
 const Index = () => {
-  const { messages, isLoading, sendMessage, cancelStream, clearMessages } = useChat();
+  const {
+    messages,
+    isLoading,
+    stage,
+    sendMessage,
+    submitChecklist,
+    submitClarification,
+    cancelStream,
+    clearMessages,
+  } = useChat();
   const { sessions, saveSession, deleteSession } = useLocalStorage();
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll on new messages
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Save session when messages change
   useEffect(() => {
     if (messages.length > 0) {
       const session: ShoppingSession = {
         id: activeSessionId || crypto.randomUUID(),
         title: messages[0]?.content.slice(0, 50) || "New Session",
         messages,
+        stage,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -56,7 +65,6 @@ const Index = () => {
   const handleSelectSession = (session: ShoppingSession) => {
     setActiveSessionId(session.id);
     clearMessages();
-    // Messages are re-loaded from session - for now just start fresh
     setShowSidebar(false);
   };
 
@@ -78,7 +86,8 @@ const Index = () => {
               AI Shopping Agent
             </h1>
             <p className="mx-auto max-w-md text-lg text-muted-foreground">
-              Tell me what you need, and I'll find the best deals across Amazon, Walmart, and Target — all in one cart.
+              Tell me what you need, and I'll find the best deals across Amazon,
+              Walmart, and Target — all in one cart.
             </p>
           </div>
 
@@ -92,14 +101,17 @@ const Index = () => {
           </Button>
 
           <div className="space-y-3">
-            <p className="text-sm font-medium text-muted-foreground">Or try an example:</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Or try an example:
+            </p>
             <ExamplePrompts onSelect={handleExampleSelect} />
           </div>
 
           {sessions.length > 0 && (
             <div className="pt-4">
               <p className="text-sm text-muted-foreground">
-                You have {sessions.length} recent session{sessions.length > 1 ? "s" : ""}
+                You have {sessions.length} recent session
+                {sessions.length > 1 ? "s" : ""}
               </p>
               <Button
                 variant="link"
@@ -126,7 +138,11 @@ const Index = () => {
         onClick={() => setShowSidebar(!showSidebar)}
         className="fixed left-3 top-3 z-50 rounded-lg border border-border bg-card p-2 shadow-sm md:hidden"
       >
-        {showSidebar ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        {showSidebar ? (
+          <X className="h-4 w-4" />
+        ) : (
+          <Menu className="h-4 w-4" />
+        )}
       </button>
 
       {/* Sidebar */}
@@ -146,7 +162,10 @@ const Index = () => {
 
       {/* Overlay */}
       {showSidebar && (
-        <div className="fixed inset-0 z-30 bg-foreground/20 md:hidden" onClick={() => setShowSidebar(false)} />
+        <div
+          className="fixed inset-0 z-30 bg-foreground/20 md:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
       )}
 
       {/* Main chat area */}
@@ -156,34 +175,52 @@ const Index = () => {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
             <ShoppingCart className="h-4 w-4 text-primary" />
           </div>
-          <div>
-            <h2 className="font-display text-sm font-semibold">AI Shopping Agent</h2>
-            <p className="text-[11px] text-muted-foreground">Amazon • Walmart • Target</p>
+          <div className="flex-1">
+            <h2 className="font-display text-sm font-semibold">
+              AI Shopping Agent
+            </h2>
+            <p className="text-[11px] text-muted-foreground">
+              Amazon • Walmart • Target
+            </p>
           </div>
+          <StageIndicator currentStage={stage} />
         </header>
 
         {/* Messages */}
-        <div ref={scrollRef} className="chat-scroll flex-1 overflow-y-auto p-4 md:p-6">
+        <div
+          ref={scrollRef}
+          className="chat-scroll flex-1 overflow-y-auto p-4 md:p-6"
+        >
           <div className="mx-auto max-w-2xl space-y-4">
             {messages.length === 0 && (
               <div className="space-y-6 py-8">
                 <div className="text-center">
-                  <h3 className="font-display text-lg font-semibold">What are you shopping for?</h3>
+                  <h3 className="font-display text-lg font-semibold">
+                    What are you shopping for?
+                  </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Describe what you need and I'll build the perfect multi-retailer cart for you.
+                    Describe what you need and I'll build the perfect
+                    multi-retailer cart for you.
                   </p>
                 </div>
                 <ExamplePrompts onSelect={sendMessage} />
               </div>
             )}
 
-            {messages.map((msg) => (
-              <ChatMessageBubble key={msg.id} message={msg} />
+            {messages.map((msg, i) => (
+              <ChatMessageBubble
+                key={msg.id}
+                message={msg}
+                onChecklistSubmit={submitChecklist}
+                onClarificationSubmit={submitClarification}
+                isLatest={i === messages.length - 1}
+              />
             ))}
 
-            {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-              <TypingIndicator />
-            )}
+            {isLoading &&
+              messages[messages.length - 1]?.role !== "assistant" && (
+                <TypingIndicator />
+              )}
           </div>
         </div>
 
