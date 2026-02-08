@@ -1,1 +1,4 @@
 project_id = "cvttbrsxdstoszkjhpvq"
+
+[functions.ai-shopping-agent]
+verify_jwt = false
