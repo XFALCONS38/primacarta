@@ -65,19 +65,19 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-full space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm overflow-hidden"
+      className="w-full space-y-3 sm:space-y-4 rounded-xl border border-border bg-card p-3 sm:p-5 shadow-sm overflow-hidden"
     >
       <div className="text-center space-y-1">
-        <h3 className="font-display text-lg font-semibold text-foreground">Checkout Details</h3>
-        <p className="text-xs text-muted-foreground">
+        <h3 className="font-display text-base sm:text-lg font-semibold text-foreground">Checkout Details</h3>
+        <p className="text-[10px] sm:text-xs text-muted-foreground">
           Enter once — Prima handles checkout at every retailer
         </p>
       </div>
 
       {/* Name + Email */}
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+      <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label className="text-xs font-medium flex items-center gap-1">
+          <Label className="text-[10px] sm:text-xs font-medium flex items-center gap-1">
             <User className="h-3 w-3" /> Full Name
           </Label>
           <Input
@@ -85,7 +85,7 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("fullName", e.target.value)}
             disabled={disabled}
             placeholder="John Doe"
-            className="h-12 rounded-lg text-base sm:text-sm"
+            className="h-11 sm:h-12 rounded-lg text-base sm:text-sm"
             autoComplete="name"
           />
           {errors.fullName && (
@@ -93,7 +93,7 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
           )}
         </div>
         <div className="space-y-1">
-          <Label className="text-xs font-medium flex items-center gap-1">
+          <Label className="text-[10px] sm:text-xs font-medium flex items-center gap-1">
             <Mail className="h-3 w-3" /> Email
           </Label>
           <Input
@@ -102,7 +102,7 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("email", e.target.value)}
             disabled={disabled}
             placeholder="john@example.com"
-            className="h-12 rounded-lg text-base sm:text-sm"
+            className="h-11 sm:h-12 rounded-lg text-base sm:text-sm"
             autoComplete="email"
           />
           {errors.email && <p className="text-[10px] text-destructive">{errors.email}</p>}
@@ -111,7 +111,7 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
 
       {/* Address */}
       <div className="space-y-1">
-        <Label className="text-xs font-medium flex items-center gap-1">
+        <Label className="text-[10px] sm:text-xs font-medium flex items-center gap-1">
           <MapPin className="h-3 w-3" /> Street Address
         </Label>
         <Input
@@ -119,65 +119,65 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
           onChange={(e) => update("address", e.target.value)}
           disabled={disabled}
           placeholder="123 Main St, Apt 4"
-          className="h-12 rounded-lg text-base sm:text-sm"
+          className="h-11 sm:h-12 rounded-lg text-base sm:text-sm"
           autoComplete="street-address"
         />
         {errors.address && <p className="text-[10px] text-destructive">{errors.address}</p>}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
         <div className="space-y-1">
-          <Label className="text-xs">City</Label>
+          <Label className="text-[10px] sm:text-xs">City</Label>
           <Input
             value={form.city}
             onChange={(e) => update("city", e.target.value)}
             disabled={disabled}
             placeholder="Boston"
-            className="h-12 rounded-lg text-base sm:text-sm"
+            className="h-11 sm:h-12 rounded-lg text-base sm:text-sm px-2 sm:px-3"
             autoComplete="address-level2"
           />
-          {errors.city && <p className="text-[10px] text-destructive">{errors.city}</p>}
+          {errors.city && <p className="text-[9px] sm:text-[10px] text-destructive">{errors.city}</p>}
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">State</Label>
+          <Label className="text-[10px] sm:text-xs">State</Label>
           <Input
             value={form.state}
             onChange={(e) => update("state", e.target.value)}
             disabled={disabled}
             placeholder="MA"
-            className="h-12 rounded-lg text-base sm:text-sm"
+            className="h-11 sm:h-12 rounded-lg text-base sm:text-sm px-2 sm:px-3"
             maxLength={2}
             autoComplete="address-level1"
           />
-          {errors.state && <p className="text-[10px] text-destructive">{errors.state}</p>}
+          {errors.state && <p className="text-[9px] sm:text-[10px] text-destructive">{errors.state}</p>}
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">ZIP</Label>
+          <Label className="text-[10px] sm:text-xs">ZIP</Label>
           <Input
             value={form.zip}
             onChange={(e) => update("zip", e.target.value)}
             disabled={disabled}
             placeholder="02101"
-            className="h-12 rounded-lg text-base sm:text-sm"
+            className="h-11 sm:h-12 rounded-lg text-base sm:text-sm px-2 sm:px-3"
             maxLength={10}
             inputMode="numeric"
             autoComplete="postal-code"
           />
-          {errors.zip && <p className="text-[10px] text-destructive">{errors.zip}</p>}
+          {errors.zip && <p className="text-[9px] sm:text-[10px] text-destructive">{errors.zip}</p>}
         </div>
       </div>
 
       {/* Payment (simulated) */}
       <div className="space-y-1">
-        <Label className="text-xs font-medium flex items-center gap-1">
-          <CreditCard className="h-3 w-3" /> Card Last 4 Digits (simulated)
+        <Label className="text-[10px] sm:text-xs font-medium flex items-center gap-1">
+          <CreditCard className="h-3 w-3" /> Card Last 4 (simulated)
         </Label>
         <Input
           value={form.cardLast4}
           onChange={(e) => update("cardLast4", e.target.value.replace(/\D/g, "").slice(0, 4))}
           disabled={disabled}
           placeholder="4242"
-          className="h-12 rounded-lg text-base sm:text-sm"
+          className="h-11 sm:h-12 rounded-lg text-base sm:text-sm"
           maxLength={4}
           inputMode="numeric"
           autoComplete="cc-number"
@@ -185,8 +185,8 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
         {errors.cardLast4 && (
           <p className="text-[10px] text-destructive">{errors.cardLast4}</p>
         )}
-        <p className="text-[10px] text-muted-foreground">
-          No real payment will be processed — this is a sandbox demo
+        <p className="text-[9px] sm:text-[10px] text-muted-foreground">
+          No real payment — sandbox demo
         </p>
       </div>
 
