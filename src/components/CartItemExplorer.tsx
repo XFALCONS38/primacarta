@@ -174,11 +174,11 @@ function ItemDetailCard({
     <div className="rounded-lg border border-border bg-background overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors min-h-[48px] active:scale-[0.98]"
+        className="flex w-full items-center gap-1.5 sm:gap-2.5 px-2 py-2 sm:px-3 sm:py-2.5 text-left hover:bg-muted/40 transition-colors min-h-[44px] active:scale-[0.98]"
       >
         <span
           className={cn(
-            "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+            "flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-bold",
             rank === 1
               ? "bg-primary text-primary-foreground"
               : rank === 2
@@ -189,44 +189,44 @@ function ItemDetailCard({
           #{rank}
         </span>
 
-        <span className="text-base">{item.emoji}</span>
+        <span className="text-sm sm:text-base shrink-0">{item.emoji}</span>
 
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className={cn("inline-block h-2 w-2 rounded-full", getRetailerDot(item.retailer))} />
-            <span>{item.retailer}</span>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <p className="truncate text-xs sm:text-sm font-medium text-foreground">{item.name}</p>
+          <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
+            <span className={cn("inline-block h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full shrink-0", getRetailerDot(item.retailer))} />
+            <span className="truncate">{item.retailer}</span>
             {item.rating && (
               <>
                 <span>•</span>
-                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-yellow-400 text-yellow-400 shrink-0" />
                 <span>{item.rating.toFixed(1)}</span>
               </>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {item.price > 0 && (
-            <span className="text-sm font-semibold text-foreground">${item.price.toFixed(2)}</span>
+            <span className="text-xs sm:text-sm font-semibold text-foreground">${item.price.toFixed(2)}</span>
           )}
           {source === "Selected" && (
-            <Badge variant="default" className="text-[10px] px-1.5 py-0 h-5">
+            <Badge variant="default" className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 h-4 sm:h-5 hidden sm:inline-flex">
               In Cart
             </Badge>
           )}
           {isCandidate && (
             <Badge
               variant="outline"
-              className="text-[10px] px-1.5 py-0 h-5 border-primary/30 text-primary"
+              className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 h-4 sm:h-5 border-primary/30 text-primary hidden sm:inline-flex"
             >
-              <Search className="h-2.5 w-2.5 mr-0.5" />
+              <Search className="h-2 w-2 sm:h-2.5 sm:w-2.5 mr-0.5" />
               Found
             </Badge>
           )}
           <ChevronDown
             className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform",
+              "h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground transition-transform shrink-0",
               open && "rotate-180"
             )}
           />
@@ -242,18 +242,18 @@ function ItemDetailCard({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="border-t border-border px-3 py-3 space-y-2.5 bg-muted/20">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
+            <div className="border-t border-border px-2 py-2.5 sm:px-3 sm:py-3 space-y-2 sm:space-y-2.5 bg-muted/20">
+              <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 sm:gap-y-2 text-xs sm:grid-cols-2">
                 {item.price > 0 && (
                   <DetailRow
-                    icon={<DollarSign className="h-3.5 w-3.5" />}
+                    icon={<DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                     label="Price"
                     value={`$${item.price.toFixed(2)}`}
                   />
                 )}
                 {item.original_price && item.original_price > item.price && (
                   <DetailRow
-                    icon={<Tag className="h-3.5 w-3.5" />}
+                    icon={<Tag className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                     label="Original"
                     value={
                       <span className="line-through text-muted-foreground">
@@ -263,12 +263,12 @@ function ItemDetailCard({
                   />
                 )}
                 <DetailRow
-                  icon={<Truck className="h-3.5 w-3.5" />}
+                  icon={<Truck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                   label="Delivery"
                   value={`${item.delivery_days} day${item.delivery_days !== 1 ? "s" : ""}`}
                 />
                 <DetailRow
-                  icon={<Package className="h-3.5 w-3.5" />}
+                  icon={<Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                   label="Shipping"
                   value={
                     item.shipping_cost != null
@@ -282,7 +282,7 @@ function ItemDetailCard({
                 />
                 {item.variant && (
                   <DetailRow
-                    icon={<Info className="h-3.5 w-3.5" />}
+                    icon={<Info className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                     label="Variant"
                     value={item.variant}
                   />
@@ -291,7 +291,7 @@ function ItemDetailCard({
                   icon={
                     <span
                       className={cn(
-                        "inline-block h-3 w-3 rounded-full",
+                        "inline-block h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full",
                         getRetailerDot(item.retailer)
                       )}
                     />
@@ -302,13 +302,13 @@ function ItemDetailCard({
               </div>
 
               {item.rating && (
-                <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-xs">
                   <div className="flex items-center gap-0.5">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star
                         key={i}
                         className={cn(
-                          "h-3.5 w-3.5",
+                          "h-3 w-3 sm:h-3.5 sm:w-3.5",
                           i < Math.round(item.rating!)
                             ? "fill-yellow-400 text-yellow-400"
                             : "text-muted-foreground/30"
@@ -319,35 +319,35 @@ function ItemDetailCard({
                   <span className="font-medium text-foreground">{item.rating.toFixed(1)}</span>
                   {item.review_count != null && (
                     <span className="text-muted-foreground">
-                      ({item.review_count.toLocaleString()} reviews)
+                      ({item.review_count.toLocaleString()})
                     </span>
                   )}
                 </div>
               )}
 
               {item.discount_label && (
-                <div className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive">
-                  <Tag className="h-3 w-3" />
+                <div className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-[10px] sm:text-xs font-medium text-destructive">
+                  <Tag className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                   {item.discount_label}
                 </div>
               )}
 
               {item.reason && (
-                <div className="rounded-md bg-primary/5 border border-primary/10 px-2.5 py-2 text-xs text-muted-foreground leading-relaxed">
+                <div className="rounded-md bg-primary/5 border border-primary/10 px-2 py-1.5 sm:px-2.5 sm:py-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed break-words">
                   <span className="font-medium text-foreground">Why this pick: </span>
                   {item.reason}
                 </div>
               )}
 
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <BarChart3 className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
+                <BarChart3 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 <span>
-                  Composite score:{" "}
+                  Score:{" "}
                   <span className="font-semibold text-foreground">
                     {computeScore(item).toFixed(1)}
                   </span>
                 </span>
-                <span className="text-muted-foreground/60">· Source: {source}</span>
+                <span className="text-muted-foreground/60 truncate">· {source}</span>
               </div>
 
               {item.url && (
@@ -355,10 +355,10 @@ function ItemDetailCard({
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors min-h-[36px]"
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-[11px] sm:text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors min-h-[36px]"
                 >
-                  <ExternalLink className="h-3 w-3" />
-                  View Product Page
+                  <ExternalLink className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  View Product
                 </a>
               )}
             </div>
@@ -379,21 +379,21 @@ function DetailRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-muted-foreground">{icon}</span>
-      <span className="text-muted-foreground">{label}:</span>
-      <span className="font-medium text-foreground">{value}</span>
+    <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+      <span className="text-muted-foreground shrink-0">{icon}</span>
+      <span className="text-muted-foreground shrink-0">{label}:</span>
+      <span className="font-medium text-foreground truncate">{value}</span>
     </div>
   );
 }
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "score", label: "Score" },
-  { value: "price_asc", label: "Price: Low → High" },
-  { value: "price_desc", label: "Price: High → Low" },
-  { value: "rating", label: "Rating: Best First" },
-  { value: "delivery", label: "Delivery: Fastest" },
-  { value: "reviews", label: "Reviews: Most" },
+  { value: "price_asc", label: "Price ↑" },
+  { value: "price_desc", label: "Price ↓" },
+  { value: "rating", label: "Rating" },
+  { value: "delivery", label: "Fastest" },
+  { value: "reviews", label: "Reviews" },
 ];
 
 export function CartItemExplorer({
@@ -420,47 +420,48 @@ export function CartItemExplorer({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-full rounded-xl border border-border bg-card p-4 shadow-sm space-y-3 overflow-hidden"
+      className="w-full rounded-xl border border-border bg-card p-2.5 sm:p-4 shadow-sm space-y-2 sm:space-y-3 overflow-hidden"
     >
       <div className="flex items-center gap-2">
-        <BarChart3 className="h-4 w-4 text-primary" />
-        <h4 className="font-display text-sm font-semibold text-foreground">
+        <BarChart3 className="h-4 w-4 text-primary shrink-0" />
+        <h4 className="font-display text-xs sm:text-sm font-semibold text-foreground truncate">
           All Found Items by Category
         </h4>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Every product discovered across retailers, ranked by composite score. Click to expand
-        details.
+      <p className="text-[10px] sm:text-xs text-muted-foreground">
+        Every product discovered, ranked by score. Tap to expand.
       </p>
 
-      <Tabs defaultValue={categories[0]} className="w-full">
-        <TabsList className="w-full overflow-x-auto flex-nowrap scrollbar-hide h-auto gap-1 bg-muted/50 p-1 justify-start">
-          {categories.map((cat) => (
-            <TabsTrigger
-              key={cat}
-              value={cat}
-              className="text-xs px-2.5 py-2 data-[state=active]:bg-background whitespace-nowrap shrink-0 min-h-[44px]"
-            >
-              {cat}
-              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1 py-0 h-4">
-                {grouped[cat].length}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs defaultValue={categories[0]} className="w-full overflow-hidden">
+        <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <TabsList className="w-max flex flex-nowrap h-auto gap-1 bg-muted/50 p-1">
+            {categories.map((cat) => (
+              <TabsTrigger
+                key={cat}
+                value={cat}
+                className="text-[10px] sm:text-xs px-2 py-1.5 sm:px-2.5 sm:py-2 data-[state=active]:bg-background whitespace-nowrap shrink-0 min-h-[36px] sm:min-h-[44px]"
+              >
+                {cat}
+                <Badge variant="secondary" className="ml-1 sm:ml-1.5 text-[9px] sm:text-[10px] px-1 py-0 h-3.5 sm:h-4">
+                  {grouped[cat].length}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         {categories.map((cat) => {
           const sortedEntries = sortEntries(grouped[cat], getSort(cat));
           return (
-            <TabsContent key={cat} value={cat} className="mt-3 space-y-2">
+            <TabsContent key={cat} value={cat} className="mt-2 sm:mt-3 space-y-1.5 sm:space-y-2">
               <div className="flex items-center gap-2">
-                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <ArrowUpDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground shrink-0" />
                 <Select
                   value={getSort(cat)}
                   onValueChange={(val) => setSort(cat, val as SortOption)}
                 >
-                  <SelectTrigger className="h-10 w-full sm:w-auto sm:min-w-[160px] text-xs bg-background border-border">
-                    <SelectValue placeholder="Sort by..." />
+                  <SelectTrigger className="h-8 sm:h-10 w-full sm:w-auto sm:min-w-[140px] text-[10px] sm:text-xs bg-background border-border">
+                    <SelectValue placeholder="Sort..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">
                     {SORT_OPTIONS.map((opt) => (
@@ -470,7 +471,7 @@ export function CartItemExplorer({
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="text-[10px] text-muted-foreground ml-auto">
+                <span className="text-[9px] sm:text-[10px] text-muted-foreground ml-auto shrink-0">
                   {sortedEntries.length} item{sortedEntries.length !== 1 ? "s" : ""}
                 </span>
               </div>

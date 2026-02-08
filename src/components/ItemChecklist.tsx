@@ -35,9 +35,9 @@ export function ItemChecklist({ items, onSubmit, disabled }: ItemChecklistProps)
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-full space-y-3 overflow-hidden"
+      className="w-full space-y-3 overflow-hidden"
     >
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 sm:grid-cols-3">
         {items.map((item) => {
           const isSelected = selected.has(item.id);
           return (
@@ -46,16 +46,16 @@ export function ItemChecklist({ items, onSubmit, disabled }: ItemChecklistProps)
               onClick={() => toggle(item.id)}
               disabled={disabled}
               className={cn(
-                "relative flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm transition-all min-h-[48px] active:scale-[0.97]",
+                "relative flex items-center gap-1.5 sm:gap-2 rounded-xl border px-2 py-2.5 sm:px-3 sm:py-3 text-left text-xs sm:text-sm transition-all min-h-[44px] active:scale-[0.97]",
                 isSelected
                   ? "border-primary bg-primary/10 text-foreground shadow-sm"
                   : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-primary/5",
                 disabled && "pointer-events-none opacity-60"
               )}
             >
-              <span className="text-base">{item.emoji}</span>
-              <span className="flex-1 font-medium">{item.label}</span>
-              {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+              <span className="text-sm sm:text-base shrink-0">{item.emoji}</span>
+              <span className="flex-1 font-medium truncate min-w-0">{item.label}</span>
+              {isSelected && <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary shrink-0" />}
             </button>
           );
         })}

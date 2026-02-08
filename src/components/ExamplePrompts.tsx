@@ -35,7 +35,7 @@ interface ExamplePromptsProps {
 
 export function ExamplePrompts({ onSelect }: ExamplePromptsProps) {
   return (
-    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+    <div className="grid gap-1.5 sm:gap-2 grid-cols-1 sm:grid-cols-2">
       {prompts.map((prompt, i) => (
         <motion.button
           key={i}
@@ -43,14 +43,14 @@ export function ExamplePrompts({ onSelect }: ExamplePromptsProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: i * 0.05 }}
           onClick={() => onSelect(prompt.text)}
-          className="group flex items-start gap-3 rounded-xl border border-border bg-card p-3.5 text-left shadow-sm transition-all hover:border-primary/30 hover:shadow-md active:scale-[0.98] min-h-[48px]"
+          className="group flex items-start gap-2.5 sm:gap-3 rounded-xl border border-border bg-card p-3 sm:p-3.5 text-left shadow-sm transition-all hover:border-primary/30 hover:shadow-md active:scale-[0.98] min-h-[44px] overflow-hidden"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
-            <prompt.icon className="h-4 w-4" />
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
+            <prompt.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </div>
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">{prompt.label}</p>
-            <p className="mt-0.5 text-sm text-foreground">{prompt.text}</p>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <p className="text-[10px] sm:text-xs font-medium text-muted-foreground">{prompt.label}</p>
+            <p className="mt-0.5 text-xs sm:text-sm text-foreground break-words line-clamp-3">{prompt.text}</p>
           </div>
         </motion.button>
       ))}
