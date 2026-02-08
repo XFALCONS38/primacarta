@@ -459,7 +459,7 @@ export function CartItemExplorer({
                   value={getSort(cat)}
                   onValueChange={(val) => setSort(cat, val as SortOption)}
                 >
-                  <SelectTrigger className="h-9 w-auto min-w-[160px] text-xs bg-background border-border">
+                  <SelectTrigger className="h-10 w-full sm:w-auto sm:min-w-[160px] text-xs bg-background border-border">
                     <SelectValue placeholder="Sort by..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">

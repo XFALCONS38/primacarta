@@ -379,7 +379,7 @@ export function CartRecommendationCard({
                 onClick={onOptimizeBudget}
                 variant="outline"
                 size="sm"
-                className="rounded-xl text-xs h-10"
+                className="rounded-xl text-xs h-12"
               >
                 <DollarSign className="mr-1 h-3 w-3" />
                 Optimize Budget
@@ -390,7 +390,7 @@ export function CartRecommendationCard({
                 onClick={onOptimizeDelivery}
                 variant="outline"
                 size="sm"
-                className="rounded-xl text-xs h-10"
+                className="rounded-xl text-xs h-12"
               >
                 <Clock className="mr-1 h-3 w-3" />
                 Optimize Delivery
