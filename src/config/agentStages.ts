@@ -236,6 +236,8 @@ export const TOOL_DEFINITIONS = {
                       discount_label: { type: "string" },
                     },
                     required: ["name", "category", "retailer", "price", "delivery_days", "emoji"],
+                  },
+                },
                 ranking_explanation: { type: "string" },
               },
               required: ["set_name", "items", "ranking_explanation"],
