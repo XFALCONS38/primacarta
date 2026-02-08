@@ -690,9 +690,45 @@ const OPENAI_MODEL = "gpt-4o-mini";
 let _lastSearchResults: ProductSearchResult[] = [];
 let _lastSearchCandidates: Record<string, SearchCandidate[]> = {};
 
+// ─── RATE LIMITING ───
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60000 });
+    return true;
+  }
+  if (entry.count >= 10) return false;
+  entry.count++;
+  return true;
+}
+
+// Clean up old entries periodically to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap.entries()) {
+    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  }
+}, 300000); // Every 5 minutes
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Rate limiting
+  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  
+  if (!checkRateLimit(clientIp)) {
+    console.warn(`Rate limit exceeded for IP: ${clientIp}`);
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
