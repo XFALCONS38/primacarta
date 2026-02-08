@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import type {
   ChatMessage,
   ChecklistItem,
@@ -39,14 +38,7 @@ export function useChat() {
     targetStage: WorkflowStage,
     signal?: AbortSignal
   ) => {
-    // Get the current user's session token for authenticated requests
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-
-    if (!token) {
-      addAssistantMessage("⚠️ Please sign in to use the shopping agent.");
-      return;
-    }
+    const token = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
     const resp = await fetch(CHAT_URL, {
       method: "POST",

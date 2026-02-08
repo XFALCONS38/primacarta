@@ -170,7 +170,7 @@ function FieldRenderer({
             <label
               key={opt}
               className={cn(
-                "flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors min-h-[36px] max-w-full overflow-hidden",
+                "flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors min-h-[36px]",
                 selectedMulti.includes(opt)
                   ? "border-primary bg-primary/10 text-foreground"
                   : "border-border bg-background text-muted-foreground hover:border-primary/40"
@@ -180,9 +180,9 @@ function FieldRenderer({
                 checked={selectedMulti.includes(opt)}
                 onCheckedChange={() => onToggleMulti(opt)}
                 disabled={disabled}
-                className="h-3.5 w-3.5 shrink-0"
+                className="h-3.5 w-3.5"
               />
-              <span className="truncate">{opt}</span>
+              {opt}
             </label>
           ))}
         </div>
