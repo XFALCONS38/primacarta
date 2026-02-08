@@ -32,6 +32,7 @@ import type {
   AlternativeSet,
   CartRecommendationItem,
 } from "@/types/chat";
+import { CartItemExplorer } from "@/components/CartItemExplorer";
 import { cn } from "@/lib/utils";
 
 interface CartRecommendationProps {
@@ -384,6 +385,12 @@ export function CartRecommendationCard({
           </CollapsibleContent>
         </Collapsible>
       )}
+
+      {/* Item Explorer — tabbed category view */}
+      <CartItemExplorer
+        mainItems={cart.items}
+        alternativeSets={cart.alternativeSets}
+      />
 
       {/* Optimizer buttons + Checkout */}
       {isLatest && (
