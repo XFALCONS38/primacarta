@@ -386,6 +386,12 @@ export function CartRecommendationCard({
         </Collapsible>
       )}
 
+      {/* Item Explorer — tabbed category view */}
+      <CartItemExplorer
+        mainItems={cart.items}
+        alternativeSets={cart.alternativeSets}
+      />
+
       {/* Optimizer buttons + Checkout */}
       {isLatest && (
         <div className="space-y-2">
