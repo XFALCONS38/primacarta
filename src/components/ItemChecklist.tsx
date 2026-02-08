@@ -46,7 +46,7 @@ export function ItemChecklist({ items, onSubmit, disabled }: ItemChecklistProps)
               onClick={() => toggle(item.id)}
               disabled={disabled}
               className={cn(
-                "relative flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm transition-all min-h-[48px]",
+                "relative flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm transition-all min-h-[48px] active:scale-[0.97]",
                 isSelected
                   ? "border-primary bg-primary/10 text-foreground shadow-sm"
                   : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-primary/5",

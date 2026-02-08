@@ -174,7 +174,7 @@ function ItemDetailCard({
     <div className="rounded-lg border border-border bg-background overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors min-h-[48px]"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors min-h-[48px] active:scale-[0.98]"
       >
         <span
           className={cn(
@@ -439,7 +439,7 @@ export function CartItemExplorer({
             <TabsTrigger
               key={cat}
               value={cat}
-              className="text-xs px-2.5 py-2 data-[state=active]:bg-background whitespace-nowrap shrink-0 min-h-[36px]"
+              className="text-xs px-2.5 py-2 data-[state=active]:bg-background whitespace-nowrap shrink-0 min-h-[44px]"
             >
               {cat}
               <Badge variant="secondary" className="ml-1.5 text-[10px] px-1 py-0 h-4">
@@ -459,7 +459,7 @@ export function CartItemExplorer({
                   value={getSort(cat)}
                   onValueChange={(val) => setSort(cat, val as SortOption)}
                 >
-                  <SelectTrigger className="h-9 w-auto min-w-[160px] text-xs bg-background border-border">
+                  <SelectTrigger className="h-10 w-full sm:w-auto sm:min-w-[160px] text-xs bg-background border-border">
                     <SelectValue placeholder="Sort by..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">

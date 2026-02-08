@@ -75,7 +75,7 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
       </div>
 
       {/* Name + Email */}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
         <div className="space-y-1">
           <Label className="text-xs font-medium flex items-center gap-1">
             <User className="h-3 w-3" /> Full Name
@@ -85,7 +85,8 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("fullName", e.target.value)}
             disabled={disabled}
             placeholder="John Doe"
-            className="h-10 rounded-lg text-base sm:text-sm"
+            className="h-12 rounded-lg text-base sm:text-sm"
+            autoComplete="name"
           />
           {errors.fullName && (
             <p className="text-[10px] text-destructive">{errors.fullName}</p>
@@ -101,7 +102,8 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("email", e.target.value)}
             disabled={disabled}
             placeholder="john@example.com"
-            className="h-10 rounded-lg text-base sm:text-sm"
+            className="h-12 rounded-lg text-base sm:text-sm"
+            autoComplete="email"
           />
           {errors.email && <p className="text-[10px] text-destructive">{errors.email}</p>}
         </div>
@@ -117,12 +119,13 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
           onChange={(e) => update("address", e.target.value)}
           disabled={disabled}
           placeholder="123 Main St, Apt 4"
-          className="h-10 rounded-lg text-base sm:text-sm"
+          className="h-12 rounded-lg text-base sm:text-sm"
+          autoComplete="street-address"
         />
         {errors.address && <p className="text-[10px] text-destructive">{errors.address}</p>}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div className="space-y-1">
           <Label className="text-xs">City</Label>
           <Input
@@ -130,7 +133,8 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("city", e.target.value)}
             disabled={disabled}
             placeholder="Boston"
-            className="h-10 rounded-lg text-base sm:text-sm"
+            className="h-12 rounded-lg text-base sm:text-sm"
+            autoComplete="address-level2"
           />
           {errors.city && <p className="text-[10px] text-destructive">{errors.city}</p>}
         </div>
@@ -141,8 +145,9 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("state", e.target.value)}
             disabled={disabled}
             placeholder="MA"
-            className="h-10 rounded-lg text-base sm:text-sm"
+            className="h-12 rounded-lg text-base sm:text-sm"
             maxLength={2}
+            autoComplete="address-level1"
           />
           {errors.state && <p className="text-[10px] text-destructive">{errors.state}</p>}
         </div>
@@ -153,8 +158,10 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
             onChange={(e) => update("zip", e.target.value)}
             disabled={disabled}
             placeholder="02101"
-            className="h-10 rounded-lg text-base sm:text-sm"
+            className="h-12 rounded-lg text-base sm:text-sm"
             maxLength={10}
+            inputMode="numeric"
+            autoComplete="postal-code"
           />
           {errors.zip && <p className="text-[10px] text-destructive">{errors.zip}</p>}
         </div>
@@ -170,8 +177,10 @@ export function CheckoutForm({ onSubmit, disabled }: CheckoutFormProps) {
           onChange={(e) => update("cardLast4", e.target.value.replace(/\D/g, "").slice(0, 4))}
           disabled={disabled}
           placeholder="4242"
-          className="h-10 rounded-lg text-base sm:text-sm"
+          className="h-12 rounded-lg text-base sm:text-sm"
           maxLength={4}
+          inputMode="numeric"
+          autoComplete="cc-number"
         />
         {errors.cardLast4 && (
           <p className="text-[10px] text-destructive">{errors.cardLast4}</p>

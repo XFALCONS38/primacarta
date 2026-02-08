@@ -42,6 +42,7 @@ export function ChatInput({ onSend, onCancel, isLoading, placeholder }: ChatInpu
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder || "Describe what you're shopping for..."}
+        enterKeyHint="send"
         rows={1}
         className="flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-base outline-none placeholder:text-muted-foreground"
       />

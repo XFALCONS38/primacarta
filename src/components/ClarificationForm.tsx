@@ -132,8 +132,9 @@ function FieldRenderer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className="h-10 rounded-lg text-base sm:text-sm"
+          className="h-12 rounded-lg text-base sm:text-sm"
           placeholder={`Enter ${field.label.toLowerCase()}`}
+          autoComplete="off"
         />
       )}
 
@@ -141,17 +142,19 @@ function FieldRenderer({
         <Input
           id={field.id}
           type="number"
+          inputMode="numeric"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className="h-10 rounded-lg text-base sm:text-sm"
+          className="h-12 rounded-lg text-base sm:text-sm"
           placeholder="0"
+          autoComplete="off"
         />
       )}
 
       {field.type === "select" && field.options && (
         <Select value={value} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger className="h-10 rounded-lg text-base sm:text-sm">
+          <SelectTrigger className="h-12 rounded-lg text-base sm:text-sm w-full">
             <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
           </SelectTrigger>
           <SelectContent>
@@ -170,7 +173,7 @@ function FieldRenderer({
             <label
               key={opt}
               className={cn(
-                "flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors min-h-[36px]",
+                "flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors min-h-[44px] active:scale-[0.97]",
                 selectedMulti.includes(opt)
                   ? "border-primary bg-primary/10 text-foreground"
                   : "border-border bg-background text-muted-foreground hover:border-primary/40"
