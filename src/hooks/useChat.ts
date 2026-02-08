@@ -4,9 +4,9 @@ import type {
   ChecklistItem,
   ClarificationRequest,
   CartRecommendation,
+  CheckoutStep,
 } from "@/types/chat";
 import type { WorkflowStage } from "@/config/agentStages";
-import { supabase } from "@/integrations/supabase/client";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-shopping-agent`;
 
@@ -55,13 +55,8 @@ export function useChat() {
       return;
     }
 
-    const contentType = resp.headers.get("Content-Type") || "";
-    if (contentType.includes("application/json")) {
-      const data = await resp.json();
-      handleToolCallResponse(data, targetStage);
-    } else {
-      await handleStreamResponse(resp);
-    }
+    const data = await resp.json();
+    handleToolCallResponse(data, targetStage);
   };
 
   /** Send a text message and get AI response */
@@ -158,9 +153,20 @@ export function useChat() {
         case "build_cart": {
           const cart: CartRecommendation = {
             summary: data.data.summary || "",
-            items: data.data.items || [],
+            items: (data.data.items || []).map((item: any) => ({
+              ...item,
+              replace: item.replace ?? true,
+            })),
             totalCost: data.data.total_cost || 0,
             budget: data.data.budget || 0,
+            rankingExplanation: data.data.ranking_explanation || undefined,
+            alternativeSets: data.data.alternative_sets
+              ? data.data.alternative_sets.map((alt: any) => ({
+                  set_name: alt.set_name,
+                  items: alt.items || [],
+                  ranking_explanation: alt.ranking_explanation || "",
+                }))
+              : undefined,
           };
           lastCartRef.current = cart;
           const assistantMsg: ChatMessage = {
@@ -176,91 +182,35 @@ export function useChat() {
           break;
         }
 
+        case "generate_checkout": {
+          const checkoutSteps: CheckoutStep[] = (data.data.steps || []).map(
+            (step: any) => ({
+              retailer: step.retailer,
+              items: step.items || [],
+              subtotal: step.subtotal || 0,
+              estimated_delivery_days: step.estimated_delivery_days,
+              steps: step.steps || [],
+            })
+          );
+          const grandTotal = data.data.grand_total || 0;
+          const assistantMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: "",
+            timestamp: new Date(),
+            checkoutSteps,
+            checkoutGrandTotal: grandTotal,
+            stage: currentStage,
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+          break;
+        }
+
         default:
           if (data.text) addAssistantMessage(data.text);
       }
     } else if (data.type === "text") {
       addAssistantMessage(data.text || "");
-    }
-  };
-
-  /** Handle SSE streaming response */
-  const handleStreamResponse = async (resp: Response) => {
-    if (!resp.body) return;
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let textBuffer = "";
-    let assistantSoFar = "";
-    const assistantId = crypto.randomUUID();
-    let streamDone = false;
-
-    const upsert = (chunk: string) => {
-      assistantSoFar += chunk;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.id === assistantId) {
-          return prev.map((m) =>
-            m.id === assistantId ? { ...m, content: assistantSoFar } : m
-          );
-        }
-        return [
-          ...prev,
-          {
-            id: assistantId,
-            role: "assistant" as const,
-            content: assistantSoFar,
-            timestamp: new Date(),
-          },
-        ];
-      });
-    };
-
-    while (!streamDone) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      textBuffer += decoder.decode(value, { stream: true });
-
-      let newlineIndex: number;
-      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-        let line = textBuffer.slice(0, newlineIndex);
-        textBuffer = textBuffer.slice(newlineIndex + 1);
-
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
-
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") {
-          streamDone = true;
-          break;
-        }
-
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) upsert(content);
-        } catch {
-          textBuffer = line + "\n" + textBuffer;
-          break;
-        }
-      }
-    }
-
-    if (textBuffer.trim()) {
-      for (let raw of textBuffer.split("\n")) {
-        if (!raw) continue;
-        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-        if (raw.startsWith(":") || raw.trim() === "") continue;
-        if (!raw.startsWith("data: ")) continue;
-        const jsonStr = raw.slice(6).trim();
-        if (jsonStr === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) upsert(content);
-        } catch { /* ignore */ }
-      }
     }
   };
 

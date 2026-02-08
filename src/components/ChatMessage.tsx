@@ -5,6 +5,7 @@ import type { ChatMessage as ChatMessageType, ChecklistItem } from "@/types/chat
 import { ItemChecklist } from "@/components/ItemChecklist";
 import { ClarificationForm } from "@/components/ClarificationForm";
 import { CartRecommendationCard } from "@/components/CartRecommendation";
+import { CheckoutSimulation } from "@/components/CheckoutSimulation";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
@@ -12,6 +13,7 @@ interface ChatMessageProps {
   onChecklistSubmit?: (items: ChecklistItem[]) => void;
   onClarificationSubmit?: (values: Record<string, string>) => void;
   onCheckout?: () => void;
+  onReplaceItem?: (itemName: string) => void;
   isLatest?: boolean;
 }
 
@@ -20,6 +22,7 @@ export function ChatMessageBubble({
   onChecklistSubmit,
   onClarificationSubmit,
   onCheckout,
+  onReplaceItem,
   isLatest,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
@@ -84,7 +87,16 @@ export function ChatMessageBubble({
           <CartRecommendationCard
             cart={message.cartData}
             onCheckout={onCheckout}
+            onReplaceItem={onReplaceItem}
             isLatest={isLatest}
+          />
+        )}
+
+        {/* Checkout simulation UI */}
+        {message.checkoutSteps && message.checkoutSteps.length > 0 && (
+          <CheckoutSimulation
+            checkoutSteps={message.checkoutSteps}
+            grandTotal={message.checkoutGrandTotal || 0}
           />
         )}
       </div>

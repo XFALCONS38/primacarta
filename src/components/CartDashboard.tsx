@@ -8,6 +8,7 @@ import type { CartRecommendationItem } from "@/types/chat";
 interface CartDashboardProps {
   items: CartRecommendationItem[];
   budget: number;
+  rankingExplanation?: string;
 }
 
 const RETAILER_COLORS: Record<string, string> = {

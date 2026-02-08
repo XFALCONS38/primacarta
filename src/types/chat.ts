@@ -10,6 +10,8 @@ export interface ChatMessage {
   clarificationRequest?: ClarificationRequest;
   cartData?: CartRecommendation;
   stage?: WorkflowStage;
+  checkoutSteps?: CheckoutStep[];
+  checkoutGrandTotal?: number;
 }
 
 // Item checklist for stage 1 → 2
@@ -35,6 +37,20 @@ export interface ClarificationRequest {
   fields: ClarificationField[];
 }
 
+// Structured user intent (extracted by agent)
+export interface UserSpec {
+  scenario: string;
+  budget: number;
+  delivery_by?: string;
+  preferences: {
+    team_or_theme?: string;
+    style?: string;
+    colors?: string[];
+    must_haves?: string[];
+    nice_to_haves?: string[];
+  };
+}
+
 // Cart data for stage 4-5
 export interface CartRecommendationItem {
   name: string;
@@ -44,6 +60,13 @@ export interface CartRecommendationItem {
   delivery_days: number;
   emoji: string;
   variant?: string;
+  replace?: boolean;
+}
+
+export interface AlternativeSet {
+  set_name: string;
+  items: CartRecommendationItem[];
+  ranking_explanation: string;
 }
 
 export interface CartRecommendation {
@@ -51,6 +74,17 @@ export interface CartRecommendation {
   items: CartRecommendationItem[];
   totalCost: number;
   budget: number;
+  rankingExplanation?: string;
+  alternativeSets?: AlternativeSet[];
+}
+
+// Checkout simulation step (stage 6)
+export interface CheckoutStep {
+  retailer: string;
+  items: string[];
+  subtotal: number;
+  estimated_delivery_days?: number;
+  steps: string[];
 }
 
 // Session persistence
