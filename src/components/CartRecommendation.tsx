@@ -262,7 +262,7 @@ export function CartRecommendationCard({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm"
+      className="w-full max-w-full space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm overflow-hidden"
     >
       <div className="flex items-center gap-2">
         <ShoppingCart className="h-4 w-4 text-primary" />

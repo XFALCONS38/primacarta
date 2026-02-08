@@ -35,7 +35,7 @@ export function ItemChecklist({ items, onSubmit, disabled }: ItemChecklistProps)
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md space-y-3"
+      className="w-full max-w-full space-y-3 overflow-hidden"
     >
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {items.map((item) => {
