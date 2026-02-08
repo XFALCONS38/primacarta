@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Package } from "lucide-react";
+import { Check, Package, MapPin, CreditCard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RetailerBadge } from "@/components/RetailerBadge";
-import type { CheckoutStep } from "@/types/chat";
+import type { CheckoutStep, CheckoutInfo } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
 interface CheckoutSimulationProps {
   checkoutSteps: CheckoutStep[];
   grandTotal: number;
+  checkoutInfo?: CheckoutInfo;
   onComplete?: () => void;
 }
 
 export function CheckoutSimulation({
   checkoutSteps,
   grandTotal,
+  checkoutInfo,
   onComplete,
 }: CheckoutSimulationProps) {
   const [currentRetailer, setCurrentRetailer] = useState(0);
@@ -59,6 +61,27 @@ export function CheckoutSimulation({
           This is a simulation — no real purchase will be made
         </p>
       </div>
+
+      {/* User info banner */}
+      {checkoutInfo && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex items-start gap-3 p-3 text-xs">
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-1.5 font-medium text-foreground">
+                <MapPin className="h-3 w-3 text-primary" />
+                {checkoutInfo.fullName}
+              </div>
+              <p className="text-muted-foreground">
+                {checkoutInfo.address}, {checkoutInfo.city}, {checkoutInfo.state} {checkoutInfo.zip}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <CreditCard className="h-3 w-3" />
+              •••• {checkoutInfo.cardLast4}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-3">
         {checkoutSteps.map((group, gi) => (
@@ -167,6 +190,11 @@ export function CheckoutSimulation({
                   {checkoutSteps.length} retailer{checkoutSteps.length > 1 ? "s" : ""} •{" "}
                   ${grandTotal.toFixed(2)} total
                 </p>
+                {checkoutInfo && (
+                  <p className="text-xs text-muted-foreground">
+                    Confirmation sent to {checkoutInfo.email}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   (This was a simulation — no real purchases were made)
                 </p>

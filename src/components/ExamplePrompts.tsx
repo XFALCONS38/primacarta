@@ -1,29 +1,29 @@
 import { motion } from "framer-motion";
-import { ShoppingBag, PartyPopper, Monitor, Home, Shirt } from "lucide-react";
+import { Trophy, Mountain, PartyPopper, Cake, Plane } from "lucide-react";
 
 const prompts = [
   {
-    icon: Shirt,
-    text: "Full Patriots outfit under $150, delivered by Friday",
-    label: "Sports Fan Outfit",
+    icon: Trophy,
+    text: "Full Patriots outfit head-to-toe, budget $150, delivered by Friday",
+    label: "Super Bowl Outfit",
+  },
+  {
+    icon: Mountain,
+    text: "Downhill skiing outfit, warm and waterproof, size M, budget $400, delivery within 5 days",
+    label: "Skiing Outfit",
   },
   {
     icon: PartyPopper,
+    text: "I'm hosting a hackathon for 60 people — figure out snacks, badges, adapters, decorations, and prizes at the best price",
+    label: "Hackathon Host Kit",
+  },
+  {
+    icon: Cake,
     text: "Birthday party supplies for 20 people under $100",
     label: "Party Supplies",
   },
   {
-    icon: Monitor,
-    text: "Home office starter kit: earbuds, charger, and desk accessories under $120",
-    label: "Office Setup",
-  },
-  {
-    icon: Home,
-    text: "Cozy living room refresh: throw pillows, blanket, and candles under $80",
-    label: "Home Refresh",
-  },
-  {
-    icon: ShoppingBag,
+    icon: Plane,
     text: "Complete travel accessories kit: bag, toiletry set, wallet, and sunglasses under $100",
     label: "Travel Kit",
   },
