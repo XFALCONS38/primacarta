@@ -202,6 +202,7 @@ export function useChat() {
                   ranking_explanation: alt.ranking_explanation || "",
                 }))
               : undefined,
+            searchCandidates: data.searchCandidates || undefined,
           };
           lastCartRef.current = cart;
           const assistantMsg: ChatMessage = {
