@@ -32,6 +32,7 @@ import type {
   AlternativeSet,
   CartRecommendationItem,
 } from "@/types/chat";
+import { CartItemExplorer } from "@/components/CartItemExplorer";
 import { cn } from "@/lib/utils";
 
 interface CartRecommendationProps {
