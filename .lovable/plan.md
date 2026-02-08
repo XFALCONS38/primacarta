@@ -1,153 +1,59 @@
 
 
-# Agentic Shopping Agent -- Enhancement Plan
+# Update System Prompts to Match Spec
 
-This plan upgrades the current shopping agent to match the provided specification, adding **ranking with explainability**, **alternative sets**, **real product catalog usage**, **per-item replace flags**, and **structured checkout simulation**.
-
----
-
-## What changes and why
-
-The spec introduces several capabilities the current code lacks:
-
-1. **Real product catalog in the AI prompt** -- Today the AI hallucinates product names/prices. The spec requires using the actual `src/data/products.ts` catalog (approximately 85 items). The product catalog JSON will be injected into the Research stage system prompt so the AI picks from real items.
-
-2. **Ranking formula and explainability** -- The spec defines a scoring formula: `0.4*(1-cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence`. The AI must return a `ranking_explanation` for why the top set was chosen, plus 1-2 `alternative_sets`.
-
-3. **Structured user spec** -- The spec expects a `user_spec` object (scenario, budget, delivery_by, preferences) to be extracted and returned. This will be added as a new tool output from the Identify/Clarify stages.
-
-4. **Replace flag per cart item** -- Each item in `combined_cart` gets a `replace: boolean` flag so the Review stage UI can show a replace button per item.
-
-5. **Structured checkout simulation** -- Instead of free-form streamed markdown, checkout returns structured JSON with `retailer` and `steps[]` arrays, allowing the existing `CheckoutSimulation` component to drive a real step-by-step UI.
+The provided prompts are cleaner and more explicit than the current ones. Here is what will change and where.
 
 ---
 
-## Implementation steps
+## What needs updating
 
-### Step 1: Expand types (`src/types/chat.ts`)
+Comparing the provided prompts against the current code, the differences are:
 
-Add new interfaces to match the spec output:
+1. **Stage 1 (Identify)** -- Minor wording differences. The new prompt is slightly more structured with clearer formatting. Current version is already close.
 
-- `UserSpec` -- holds scenario, budget, delivery_by, preferences (team/theme, style, colors, must-haves, nice-to-haves)
-- Update `CartRecommendationItem` to include a `replace` boolean
-- `RankedSet` -- wraps an array of items with a `set_name` and `ranking_explanation`
-- `CartRecommendation` gets new fields: `rankingExplanation`, `alternativeSets`
-- `CheckoutStep` -- `{ retailer: string; steps: string[] }`
-- Add `userSpec` and `checkoutSteps` as optional fields on `ChatMessage`
+2. **Stage 3 (Clarify)** -- The new prompt adds explicit mention of `preferences (style, team/theme, colors, must_haves, nice_to_haves)` and session pre-fill. Current version is similar but less specific about preference fields.
 
-### Step 2: Update the `build_cart` tool schema (edge function + `agentStages.ts`)
+3. **Stage 4 (Research)** -- The new prompt restructures as numbered steps (1-7), makes the scoring formula more prominent, and explicitly says "Do NOT hallucinate items; use catalog only." The current version covers the same ground but in a different format.
 
-Extend the `build_cart` tool parameters to include:
+4. **Stage 5 (Review)** -- The new prompt is more concise: "suggest alternatives from the catalog" and "Return updated combined_cart JSON." Current version is more verbose with extra rules.
 
-- `ranking_explanation` (string) -- required
-- `alternative_sets` (array of `{ set_name, items[], ranking_explanation }`) -- optional
-- Each item in `items` gains a `replace` (boolean) field
-
-Add a new tool `generate_checkout` with parameters:
-- `steps` (array of `{ retailer, steps[] }`)
-- `grand_total` (number)
-
-This replaces the free-form streaming checkout with a structured tool call.
-
-### Step 3: Inject real product catalog into the Research prompt (edge function)
-
-- Serialize the product catalog (from `src/data/products.ts`) as a JSON string and embed it directly in the edge function's `research` system prompt.
-- Since edge functions cannot import from `src/`, the catalog data will be duplicated as a const inside the edge function file.
-- The prompt will instruct the AI: "You MUST pick items from this catalog. Use exact names and prices."
-
-### Step 4: Update system prompts
-
-**Research stage prompt** changes:
-- Include the full product catalog JSON
-- Add instructions for the scoring formula
-- Require `ranking_explanation` and at least one `alternative_set`
-- Require `replace: true` on every item
-
-**Review stage prompt** changes:
-- When user asks to replace an item, reference the catalog to suggest alternatives
-- Pass catalog in this prompt too
-
-**Checkout stage** changes:
-- Switch from streaming text to a tool call (`generate_checkout`)
-- Add `generate_checkout` to `STAGE_TOOLS.checkout`
-
-### Step 5: Update edge function tool handling
-
-In `supabase/functions/ai-shopping-agent/index.ts`:
-
-- Add the `generate_checkout` tool definition
-- Add it to `STAGE_TOOLS.checkout`
-- Checkout stage now uses non-streaming (tool call) instead of streaming
-- Embed the product catalog as a const at the top of the file
-
-### Step 6: Update `useChat.ts` to handle new data
-
-- Handle `ranking_explanation` and `alternative_sets` from `build_cart` tool response
-- Store them on the `CartRecommendation` object and in the message's `cartData`
-- Handle `generate_checkout` tool call -- parse into `checkoutSteps` on the message
-- Remove the streaming checkout path (checkout is now structured)
-
-### Step 7: Update UI components
-
-**CartRecommendation.tsx** -- Add:
-- A "Why this set?" expandable section showing `rankingExplanation`
-- Per-item "Replace" button (only shown if `replace === true` and `isLatest`)
-- An "Alternatives" collapsible showing 1-2 alternative sets with their own explanations
-- Clicking an alternative set replaces the current cart view
-
-**CartDashboard.tsx** -- Add:
-- Ranking explanation card
-- Alternative sets comparison section
-
-**ChatMessage.tsx** -- Add:
-- Render `checkoutSteps` using the `CheckoutSimulation` component when present
-
-**CheckoutSimulation.tsx** -- Minor update:
-- Accept `steps: { retailer: string; steps: string[] }[]` directly instead of deriving from items
-- Keep the animated step-through UI, but use the AI-generated step labels
-
-### Step 8: Update `agentStages.ts` config
-
-- Keep the stage definitions in sync with the edge function prompts
-- Add `generate_checkout` to `TOOL_DEFINITIONS`
-- Update `build_cart` tool definition with new fields
+5. **Stage 6 (Checkout)** -- The new prompt simplifies checkout steps to "Name, Address, Payment, Confirm" and explicitly says "Do NOT stream free text. Use the structured tool output." Current version is more detailed with 4-6 steps per retailer.
 
 ---
 
-## Technical details
+## Changes by file
 
-### Product catalog embedding
+### 1. `supabase/functions/ai-shopping-agent/index.ts` (the authoritative prompts)
 
-The catalog (~85 products) serialized as JSON is roughly 15-20KB. This fits well within GPT-4o-mini's context window. The catalog will be embedded as a `const PRODUCT_CATALOG` at the top of the edge function, formatted as a compact JSON array.
+Update the `STAGE_PROMPTS` object (lines 94-178) with the user's refined prompts:
 
-### Scoring formula in prompt
+- **identify**: Replace with the cleaner version that uses bullet points and explicit tool call format
+- **clarify**: Add explicit preference field mentions (style, team/theme, colors, must_haves, nice_to_haves) and session pre-fill instruction
+- **research**: Restructure as numbered steps 1-7, keep the catalog injection (`${CATALOG_JSON}`), make scoring formula more prominent, add rule 7 "Do NOT hallucinate items; use catalog only"
+- **review**: Simplify to the concise version -- no rebuild unless replacement requested, suggest from catalog, return updated cart JSON
+- **checkout**: Replace with the simplified 4-step pattern (Name, Address, Payment, Confirm), add "Do NOT stream free text" rule
 
-The research prompt will include:
-```text
-Score each complete set: 0.4*(1-cost/budget) + 0.3*delivery_score + 0.2*preference_match + 0.1*style_coherence
-- delivery_score: 1.0 if all items arrive by deadline, scales down linearly
-- preference_match: how well items match stated colors, sizes, team, style
-- style_coherence: how well items look together as a set
-```
+### 2. `src/config/agentStages.ts` (frontend reference copy)
 
-### New tool: `generate_checkout`
+Update the `systemPrompt` field for each stage (lines 23-118) to mirror the edge function prompts. These are used as documentation/reference on the frontend side:
 
-```text
-Parameters:
-  steps: array of { retailer: string, steps: string[] }
-  grand_total: number
-```
+- **identify** (line 23-34): Update to match new wording
+- **clarify** (line 48-61): Add preference fields instruction
+- **research** (line 68-81): Restructure as numbered steps with scoring formula
+- **review** (line 88-102): Simplify
+- **checkout** (line 109-117): Simplify to 4-step pattern with "no streaming" rule
 
-### Files modified
+No tool schema changes needed -- the `TOOL_DEFINITIONS` and `TOOLS` objects are already correct and complete.
 
-| File | Change |
-|------|--------|
-| `src/types/chat.ts` | Add UserSpec, RankedSet, CheckoutStep types; update CartRecommendation |
-| `src/config/agentStages.ts` | Update prompts, add generate_checkout tool definition |
-| `supabase/functions/ai-shopping-agent/index.ts` | Embed catalog, update prompts, add generate_checkout tool, make checkout non-streaming |
-| `src/hooks/useChat.ts` | Handle ranking_explanation, alternative_sets, generate_checkout responses |
-| `src/components/CartRecommendation.tsx` | Add ranking explanation, replace buttons, alternative sets UI |
-| `src/components/ChatMessage.tsx` | Render checkoutSteps via CheckoutSimulation |
-| `src/components/CheckoutSimulation.tsx` | Accept structured steps instead of raw items |
-| `src/components/CartDashboard.tsx` | Add ranking explanation display |
+No frontend logic changes needed -- `useChat.ts` already handles all tool responses correctly.
+
+---
+
+## Technical notes
+
+- The edge function file is the only one that matters at runtime. The `agentStages.ts` file is kept in sync for developer reference only (it is not sent to the AI).
+- The product catalog injection (`${CATALOG_JSON}`) in the research and review prompts stays exactly as-is.
+- The `generate_checkout` tool and `build_cart` tool schemas remain unchanged.
+- After updating the edge function, it will be redeployed automatically.
 
