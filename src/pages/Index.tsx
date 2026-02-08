@@ -220,6 +220,8 @@ const Index = () => {
                 onReplaceItem={(name) =>
                   sendMessage(`Replace "${name}" with an alternative`)
                 }
+                onSelectAlternativeSet={selectAlternativeSet}
+                onSwapItem={swapAlternativeItem}
                 isLatest={i === messages.length - 1}
               />
             ))}
