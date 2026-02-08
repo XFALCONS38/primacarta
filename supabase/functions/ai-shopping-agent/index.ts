@@ -210,7 +210,55 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, stage = "identify" } = await req.json();
+    const body = await req.json();
+    const { messages, stage = "identify" } = body;
+
+    // --- Input Validation ---
+    const VALID_STAGES = ["identify", "clarify", "research", "review", "checkout"];
+    if (!VALID_STAGES.includes(stage)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid stage parameter" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Messages must be a non-empty array" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (messages.length > 100) {
+      return new Response(
+        JSON.stringify({ error: "Too many messages" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const VALID_ROLES = ["user", "assistant", "system"];
+    for (const msg of messages) {
+      if (!msg || typeof msg !== "object") {
+        return new Response(
+          JSON.stringify({ error: "Invalid message format" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!msg.role || !VALID_ROLES.includes(msg.role)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid message role" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (typeof msg.content !== "string" || msg.content.length > 10000) {
+        return new Response(
+          JSON.stringify({ error: "Invalid or overly long message content" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    // --- End Input Validation ---
+
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
     if (!OPENAI_API_KEY) {
