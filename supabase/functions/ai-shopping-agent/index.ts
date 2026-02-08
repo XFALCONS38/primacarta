@@ -452,7 +452,8 @@ Instructions:
 1. Build a combined cart from the search results above, selecting the best items across ANY retailers.
 2. Ensure the total cost does not exceed the user's budget.
 3. For EACH product include: name, category, retailer (actual site name like "Amazon", "Shein", "Temu", etc.), price, delivery_days (estimated), emoji, url (EXACT URL copied from search results above), reason (1 sentence explaining why this specific item was chosen), and optionally: rating, review_count, shipping_cost, original_price, discount_label, variant.
-4. Add "replace": true to each item.
+4. CRITICAL PRICE RULE: Every item MUST have a real price greater than $0. Extract the actual price from the search results. If you absolutely cannot determine a price for an item, estimate it reasonably based on the product type — NEVER use 0 as a price.
+5. Add "replace": true to each item.
 5. Generate 1-2 alternative_sets with different trade-offs (e.g., budget-friendly vs premium, faster delivery vs better reviews).
 6. Provide a detailed ranking_explanation covering WHY this set won — mention specific factors.
 7. Return structured JSON ONLY using the build_cart tool.
